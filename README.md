@@ -4,7 +4,7 @@
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Deno](https://img.shields.io/badge/deno-2.0+-black.svg)](https://deno.land)
 [![JSR](https://img.shields.io/badge/JSR-@xja77/ap2--lib-yellow.svg)](https://jsr.io/@xja77/ap2-lib)
-[![Test Coverage](https://img.shields.io/badge/coverage-84.8%25-brightgreen.svg)](#testing)
+[![Test Coverage](https://img.shields.io/badge/coverage-85.2%25-brightgreen.svg)](#testing)
 
 > **TypeScript/Deno implementation of the Agent Payments Protocol (AP2)** - The open, universal protocol backed by Google and 60+ organizations for autonomous commerce.
 
@@ -16,10 +16,10 @@ The **Agent Payments Protocol (AP2)** enables AI agents to make secure, autonomo
 
 ### Key Features
 
-- 🔒 **Cryptographic Security** - ECDSA signatures with Web Crypto API
+- 🔒 **JWT/JOSE Security** - Industry-standard JWT signatures with RS256/ES256 algorithms
 - 📝 **Strong TypeScript Typing** - Complete type safety for all AP2 structures
-- 🏗️ **SOLID Architecture** - Clean, maintainable, and extensible design
-- ✅ **100% Test Coverage** - Comprehensive validation and error handling
+- 🏗️ **SOLID Architecture** - Clean OOP design with class-based API
+- ✅ **High Test Coverage** - Comprehensive validation and error handling (85.2%+)
 - 🌐 **Universal Compatibility** - Works in Deno, Node.js, and browsers
 - 📊 **Advanced Validation** - Multi-layered mandate integrity checking
 
@@ -42,7 +42,7 @@ npm install @xja77/ap2-lib
 ### Via Deno import
 
 ```typescript
-import { createIntentMandate, createCartMandate } from "https://deno.land/x/ap2_lib/mod.ts";
+import { IntentMandateClass, CartMandateClass } from "https://deno.land/x/ap2_lib/mod.ts";
 ```
 
 ---
@@ -55,13 +55,13 @@ graph TB
     Agent --> IntentMandate[📋 Intent Mandate]
     IntentMandate --> Shopping[🛍️ Shopping Process]
     Shopping --> CartMandate[🛒 Cart Mandate]
-    CartMandate --> Signature[🔏 Cryptographic Signature]
-    Signature --> Payment[💳 Secure Payment]
-    Payment --> Verification[✅ Verification]
+    CartMandate --> JWT[🔏 JWT Signature]
+    JWT --> Payment[💳 Secure Payment]
+    Payment --> Verification[✅ JWT Verification]
 
     style IntentMandate fill:#e1f5fe
     style CartMandate fill:#f3e5f5
-    style Signature fill:#e8f5e8
+    style JWT fill:#e8f5e8
     style Payment fill:#fff3e0
 ```
 
@@ -97,10 +97,10 @@ graph LR
 ### Creating an Intent Mandate
 
 ```typescript
-import { createIntentMandate } from "@xja77/ap2-lib";
+import { IntentMandateClass } from "@xja77/ap2-lib";
 
 // Create a user's purchase intent
-const intent = await createIntentMandate({
+const intent = await IntentMandateClass.createNew({
   natural_language_description: "Wireless noise-canceling headphones under $200",
   intent_expiry: "2024-12-31T23:59:59Z",
   user_cart_confirmation_required: false,
@@ -109,16 +109,20 @@ const intent = await createIntentMandate({
 });
 
 console.log(intent.toString());
-// Output: "Intent: Wireless noise-canceling headphones under $200"
+// Output: "Intent Mandate (ID: abc123...)"
 
 console.log(intent.getData());
 // Output: Complete intent mandate data structure
+
+// Check if intent is expired
+const isExpired = await intent.checkExpiry();
+console.log(`Intent expired: ${isExpired}`);
 ```
 
-### Creating a Cart Mandate with Cryptographic Signature
+### Creating a Cart Mandate with JWT Signature
 
 ```typescript
-import { createCartMandate } from "@xja77/ap2-lib";
+import { CartMandateClass } from "@xja77/ap2-lib";
 
 // Define cart contents
 const cartContents = {
@@ -139,21 +143,23 @@ const cartContents = {
   user_cart_confirmation_required: false
 };
 
-// Create and sign cart mandate
-const cartMandate = await createCartMandate(
-  cartContents,
-  {}, // Additional mandate parameters
-  {
-    privateKey: "your-ecdsa-private-key",
-    algorithm: "ES256",
-    merchantId: "merchant-123",
-    audience: "payment-processor"
-  }
+// Create cart mandate
+const cartMandate = await CartMandateClass.createNew({
+  contents: cartContents
+});
+
+// Sign with JWT
+await cartMandate.sign(
+  "-----BEGIN RSA PRIVATE KEY-----\n...", // Your RSA private key in PEM format
+  { algorithm: "RS256", keyId: "key-1" },
+  { merchantId: "merchant-123" }
 );
 
-// Verify the signature
+// Verify the JWT signature
 const isValid = await cartMandate.verifySignature();
-console.log(`Cart mandate signature valid: ${isValid}`);
+console.log(`Cart mandate JWT signature valid: ${isValid}`);
+
+console.log(cartMandate.getStatus()); // "authorized"
 ```
 
 ### Validation and Integrity Checking
@@ -161,6 +167,10 @@ console.log(`Cart mandate signature valid: ${isValid}`);
 ```typescript
 import { CartMandateValidator } from "@xja77/ap2-lib";
 
+// Direct validation using class methods (recommended)
+await cartMandate.validate(); // Throws if invalid
+
+// Or use validator directly
 const validator = new CartMandateValidator();
 
 // Validate cart mandate structure
@@ -175,8 +185,8 @@ if (!integrityResult.isValid) {
   console.error("Integrity check failed:", integrityResult.errors);
 }
 
-// Check expiry
-const isExpired = await validator.checkExpiry(cartMandate.getData());
+// Check expiry using class method
+const isExpired = await cartMandate.checkExpiry();
 console.log(`Mandate expired: ${isExpired}`);
 ```
 
@@ -184,11 +194,11 @@ console.log(`Mandate expired: ${isExpired}`);
 
 ## 📋 Mandate Types
 
-| Type | Purpose | Signature Required | Use Case |
-|------|---------|-------------------|----------|
-| **Intent** | User's purchase intent in natural language | ❌ No | Agent receives shopping instructions |
-| **Cart** | Specific cart contents with pricing | ✅ Yes | Ready-to-purchase cart verification |
-| **Payment** | Payment method and transaction details | ✅ Yes | Transaction record and audit trail |
+| Type | Purpose | Signature Required | Methods Available |
+|------|---------|-------------------|------------------|
+| **Intent** | User's purchase intent in natural language | ❌ No | `.validate()`, `.checkExpiry()`, `.toString()` |
+| **Cart** | Specific cart contents with pricing | ✅ Yes (JWT) | `.sign()`, `.verifySignature()`, `.validate()`, `.checkExpiry()` |
+| **Payment** | Payment method and transaction details | ✅ Yes (JWT) | `.sign()`, `.verifySignature()`, `.validate()` |
 
 ### Mandate State Flow
 
@@ -209,23 +219,40 @@ stateDiagram-v2
 
 ## 🔐 Security Features
 
-### Cryptographic Signatures
+### JWT/JOSE Signatures
 
-AP2-lib uses industry-standard ECDSA signatures for cart mandate authentication:
+AP2-lib uses industry-standard JWT/JOSE signatures for cart mandate authentication:
 
 ```typescript
 import { jwtService } from "@xja77/ap2-lib";
 
-// Sign cart contents
-const signature = await jwtService.signCartMandate(cartContents, {
-  privateKey: merchantPrivateKey,
-  algorithm: "ES256", // or "RS256"
-  merchantId: "merchant-id",
-  audience: "payment-processor"
+// Sign cart contents with JWT
+const payload = {
+  iss: "merchant-123",
+  sub: "merchant-123",
+  aud: "payment-processor",
+  cart_hash: await jwtService.computeCartHash(cartContents),
+};
+
+const keyConfig = {
+  privateKey: "-----BEGIN RSA PRIVATE KEY-----\n...",
+  publicKey: "-----BEGIN RSA PUBLIC KEY-----\n...",
+  algorithm: "RS256" as const, // or "ES256"
+};
+
+const jwt = await jwtService.signMerchantAuthorization(payload, {
+  keyConfig,
+  expiresIn: 900 // 15 minutes
 });
 
-// Verify signature
-const isValid = await jwtService.verifyCartMandate(signature, publicKey);
+// Verify JWT signature
+const result = await jwtService.verifyMerchantAuthorization(jwt, {
+  keyConfig,
+  audience: "payment-processor",
+  issuer: "merchant-123"
+});
+
+console.log(`JWT valid: ${result.valid}`);
 ```
 
 ### Validation Layers
@@ -254,9 +281,9 @@ deno task coverage:detailed
 
 ### Current Test Metrics
 
-- **Total Tests**: 157 passing
-- **Line Coverage**: 84.8%
-- **Branch Coverage**: 85.2%
+- **Total Tests**: 180+ passing
+- **Line Coverage**: 85.2%+
+- **Branch Coverage**: 85.2%+
 - **Files**: 51 TypeScript modules
 
 ---
@@ -276,28 +303,37 @@ deno doc ./src/mod.ts
 ### Core API Reference
 
 ```typescript
-// Mandate Creation
-export function createIntentMandate(params: CreateIntentMandateParams): Promise<IntentMandateClass>
-export function createCartMandate(contents: CartContents, params: CreateCartMandateParams, signing?: SigningOptions): Promise<CartMandateClass>
+// Mandate Classes (OOP API)
+export class IntentMandateClass extends BaseMandate<IntentMandate> {
+  static createNew(params: CreateIntentMandateParams): Promise<IntentMandateClass>
+  validate(): Promise<void>
+  checkExpiry(currentDate?: Date): Promise<boolean>
+  toString(): string
+  getData(): IntentMandate
+  getStatus(): MandateStatus
+}
 
-// Validation
+export class CartMandateClass extends BaseMandate<CartMandate> {
+  static createNew(params: CreateCartMandateParams): Promise<CartMandateClass>
+  sign(privateKey: string, keyConfig: Partial<JWTKeyConfig>, merchantInfo: { merchantId: string }): Promise<void>
+  verifySignature(): Promise<boolean>
+  validate(): Promise<void>
+  checkExpiry(currentDate?: Date): Promise<boolean>
+}
+
+// Validation Classes
 export class IntentMandateValidator {
   validate(mandate: IntentMandate): Promise<ValidationResult>
   validateIntegrity(mandate: IntentMandate): Promise<ValidationResult>
   checkExpiry(mandate: IntentMandate, currentDate?: Date): Promise<boolean>
 }
 
-export class CartMandateValidator {
-  validate(mandate: CartMandate): Promise<ValidationResult>
-  validateIntegrity(mandate: CartMandate): Promise<ValidationResult>
-  checkExpiry(mandate: CartMandate, currentDate?: Date): Promise<boolean>
-}
-
-// Cryptography
-export class JWTService {
-  signCartMandate(contents: CartContents, options: SigningOptions): Promise<string>
-  verifyCartMandate(jwt: string, publicKey: string): Promise<boolean>
-  computeCartHash(contents: CartContents): Promise<string>
+// JWT Service
+export class JWTService implements IJWTService {
+  signMerchantAuthorization(payload: MerchantAuthorizationPayload, options: JWTSignOptions): Promise<string>
+  verifyMerchantAuthorization(jwt: string, options: JWTVerifyOptions): Promise<JWTVerificationResult>
+  computeCartHash(cartContents: unknown): Promise<string>
+  generateJTI(): string
 }
 ```
 
@@ -335,10 +371,11 @@ src/
 
 ### Design Patterns
 
-- **Factory Pattern** - Mandate creation (`createIntentMandate`, `createCartMandate`)
+- **Factory Pattern** - Mandate creation (`IntentMandateClass.createNew()`, `CartMandateClass.createNew()`)
 - **Strategy Pattern** - Validation strategies per mandate type
-- **Builder Pattern** - Complex object construction
+- **Template Method** - Base mandate class with common functionality
 - **Command Pattern** - Validation and serialization operations
+- **Interface Segregation** - Focused JWT service interfaces
 
 ---
 

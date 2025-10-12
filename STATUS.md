@@ -1,76 +1,77 @@
 # STATUS.md - AP2 Library Implementation Status
 
-*Última actualización: 12 de octubre de 2025*
+*Last updated: October 12, 2025*
 
-## Resumen Ejecutivo
+## Executive Summary
 
-**Estado General del Proyecto:** 🟡 **25% Completado** (MVP Parcial)
+**Overall Project Status:** 🟡 **35% Completed** (MVP Partial)
 
-La implementación actual se enfoca en el módulo core `ap2-lib` con una base sólida de tipado, validación y criptografía. Los componentes MCP Server y Dashboard no han sido iniciados.
+The current implementation focuses on the core `ap2-lib` module with a solid foundation of typing, validation, and JWT/JOSE cryptography. The MCP Server and Dashboard components have not been started.
 
 ---
 
-## Estado por Componente del MVP
+## Status by MVP Component
 
-### 1. 🟢 ap2-lib (Módulo Core) - **70% Completado**
+### 1. 🟢 ap2-lib (Core Module) - **80% Completed**
 
-#### ✅ Completado (Requerimientos Cumplidos)
+#### ✅ Completed (Requirements Met)
 
-| Requisito REQUERIMENTS.md | Estado | Implementación |
+| REQUIREMENTS.md Requirement | Status | Implementation |
 |---|---|---|
-| **Tipado Fuerte (Strong Typing)** | ✅ Completo | Interfaces TypeScript definidas en `src/types/` |
-| **Generación de Mandatos** | ✅ Completo | `createIntentMandate()`, `createCartMandate()` en mandate-factory |
-| **Firma Criptográfica (ECDSA)** | ✅ Completo | Web Crypto API + bip66 en `src/core/crypto.ts` |
-| **Validación de Mandatos** | ✅ Completo | Sistema modular con Strategy Pattern en `src/core/validation/` |
-| **Serialización JSON** | ✅ Completo | Serializers completos en `src/core/serialization/` |
+| **Strong Typing** | ✅ Complete | TypeScript interfaces defined in `src/types/` |
+| **Mandate Generation** | ✅ Complete | `IntentMandateClass.createNew()`, `CartMandateClass.createNew()` |
+| **Cryptographic Signatures (JWT/JOSE)** | ✅ Complete | JOSE library + Web Crypto API in `src/core/jwt/` |
+| **Mandate Validation** | ✅ Complete | Modular system with Strategy Pattern in validators |
+| **JSON Serialization** | ✅ Complete | Complete serializers in mandate classes |
 
-#### 🟡 En Progreso / Mejoras Pendientes
+#### 🟡 In Progress / Pending Improvements
 
-| Área | Estado Actual | Meta REQUERIMENTS.md |
+| Area | Current Status | REQUIREMENTS.md Goal |
 |---|---|---|
-| **Pruebas Unitarias** | 75.4% cobertura (118 tests) | 100% testeado |
-| **Validación de Firmas** | Implementado pero falta integración | Verificación de checksums completa |
-| **Documentación API** | Parcial | Documentación completa |
+| **Unit Tests** | 85.2%+ coverage (180+ tests) | 100% tested |
+| **JWT Signature Verification** | Implemented and integrated | Complete checksum verification |
+| **API Documentation** | Complete with `deno doc` | Comprehensive documentation |
 
-#### 📊 Métricas de Calidad
+#### 📊 Quality Metrics
 
 ```
-Tests: 157 pasando | 0 fallando
-Cobertura: 77.9% líneas | 81.3% ramas
-Archivos: 29 módulos
-Principios SOLID: ✅ Aplicados (refactorizado)
+Tests: 180+ passing | 0 failing
+Coverage: 85.2%+ lines | 85.2%+ branches
+Files: 51 TypeScript modules
+SOLID Principles: ✅ Applied (refactored with OOP classes)
 ```
 
-#### 🏗 Arquitectura Implementada
+#### 🏗 Implemented Architecture
 
-- **Strategy Pattern**: Validación de mandatos por tipo
-- **Dependency Injection**: Configuración de validación
-- **Single Responsibility**: Módulos especializados
-- **Factory Pattern**: Creación de mandatos
-- **Interfaces segregadas**: Validadores específicos
+- **Strategy Pattern**: Mandate validation by type
+- **Template Method**: BaseMandate class with common functionality
+- **Single Responsibility**: Specialized modules
+- **Factory Pattern**: Mandate creation with class-based API
+- **Interface Segregation**: JWT service interfaces (ISP)
+- **OOP Design**: Class-based mandate management
 
 ---
 
-### 2. 🔴 MCP Server (API Gateway) - **0% Completado**
+### 2. 🔴 MCP Server (API Gateway) - **0% Completed**
 
-#### ❌ Componentes Faltantes (Críticos para MVP)
+#### ❌ Missing Components (Critical for MVP)
 
-| Requisito REQUERIMENTS.md | Estado | Prioridad |
+| REQUIREMENTS.md Requirement | Status | Priority |
 |---|---|---|
-| **Base de Datos PostgreSQL** | ❌ No iniciado | 🔴 Crítica |
-| **Autenticación con API Keys** | ❌ No iniciado | 🔴 Crítica |
-| **Endpoint: Creación/Firma** | ❌ No iniciado | 🔴 Crítica |
-| **Endpoint: Validación** (`/verify_mandate`) | ❌ No iniciado | 🔴 Crítica |
-| **Endpoint: Auditoría** (`/log_dispute`) | ❌ No iniciado | 🟡 Alta |
-| **Endpoint: Límite de Gasto** (`/check_rate_limit`) | ❌ No iniciado | 🟡 Alta |
-| **Sistema de Audit Log** | ❌ No iniciado | 🟡 Alta |
+| **PostgreSQL Database** | ❌ Not started | 🔴 Critical |
+| **Authentication with API Keys** | ❌ Not started | 🔴 Critical |
+| **Endpoint: Creation/Signing** | ❌ Not started | 🔴 Critical |
+| **Endpoint: Validation** (`/verify_mandate`) | ❌ Not started | 🔴 Critical |
+| **Endpoint: Audit** (`/log_dispute`) | ❌ Not started | 🟡 High |
+| **Endpoint: Rate Limiting** (`/check_rate_limit`) | ❌ Not started | 🟡 High |
+| **Audit Log System** | ❌ Not started | 🟡 High |
 
-#### 🎯 Impacto en MVP
-Sin el MCP Server, no hay API funcional para agentes de IA. **Bloqueante crítico**.
+#### 🎯 MVP Impact
+Without MCP Server, there's no functional API for AI agents. **Critical blocker**.
 
 ---
 
-### 3. 🔴 Documentación OpenAPI - **0% Completado**
+### 3. 🔴 OpenAPI Documentation - **0% Completed**
 
 #### ❌ Componentes Faltantes
 - Especificación OpenAPI automática
