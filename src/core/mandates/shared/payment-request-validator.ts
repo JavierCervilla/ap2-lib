@@ -4,7 +4,7 @@
  * Specialized validator for PaymentRequest entities following the Single Responsibility Principle.
  */
 
-import type { PaymentRequest } from "../../types/mod.ts";
+import type { PaymentRequest } from "../../../types/mod.ts";
 import { BaseValidator, ValidationResult, createValidationResult, combineValidationResults } from "./interfaces.ts";
 import {
   NonEmptyArrayRule,
@@ -12,11 +12,11 @@ import {
   PositiveAmountRule,
   NumericRangeRule,
 } from "./rules.ts";
-import { ValidationConfig, DEFAULT_VALIDATION_CONFIG } from "../config/validation-config.ts";
+import { ValidationConfig, DEFAULT_VALIDATION_CONFIG } from "../../config/validation-config.ts";
 import {
   PAYMENT_MESSAGES,
-} from "../config/validation-messages.ts";
-import { ValidationMessageFormatter } from "../config/validation-messages.ts";
+} from "../../config/validation-messages.ts";
+import { ValidationMessageFormatter } from "../../config/validation-messages.ts";
 
 /**
  * Validator for PaymentRequest entities

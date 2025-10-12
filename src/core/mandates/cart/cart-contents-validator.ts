@@ -4,20 +4,20 @@
  * Specialized validator for CartContents entities following the Single Responsibility Principle.
  */
 
-import type { CartContents } from "../../types/mod.ts";
-import { isExpired } from "../../utils/mod.ts";
-import { BaseValidator, ValidationResult, createValidationResult, combineValidationResults } from "./interfaces.ts";
+import type { CartContents } from "../../../types/mod.ts";
+import { isExpired } from "../../../utils/mod.ts";
+import { BaseValidator, ValidationResult, createValidationResult, combineValidationResults } from "../shared/interfaces.ts";
 import {
   RequiredStringRule,
   DateValidationRule,
   RequiredFieldRule,
   RequiredBooleanRule,
-} from "./rules.ts";
-import { ValidationConfig, DEFAULT_VALIDATION_CONFIG } from "../config/validation-config.ts";
-import { PaymentRequestValidator } from "./payment-request-validator.ts";
+} from "../shared/rules.ts";
+import { ValidationConfig, DEFAULT_VALIDATION_CONFIG } from "../../config/validation-config.ts";
+import { PaymentRequestValidator } from "../shared/payment-request-validator.ts";
 import {
   CART_MESSAGES,
-} from "../config/validation-messages.ts";
+} from "../../config/validation-messages.ts";
 
 /**
  * Validator for CartContents entities

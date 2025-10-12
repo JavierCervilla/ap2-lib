@@ -7,6 +7,7 @@
  */
 
 import type { PaymentRequest } from "./payment_request.ts";
+import type { PaymentMandate } from "./payment-mandate.ts";
 
 /**
  * Represents the user's purchase intent.
@@ -173,4 +174,4 @@ export interface CartMandate {
 /**
  * Union type representing any type of mandate in the AP2 protocol.
  */
-export type Mandate = IntentMandate | CartMandate;
+export type Mandate = IntentMandate | CartMandate | PaymentMandate;

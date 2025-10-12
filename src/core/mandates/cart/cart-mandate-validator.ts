@@ -4,11 +4,11 @@
  * Specialized validator for CartMandate entities following the Single Responsibility Principle.
  */
 
-import type { CartMandate } from "../../types/mod.ts";
-import { BaseValidator, ValidationResult, createValidationResult } from "./interfaces.ts";
+import type { CartMandate } from "../../../types/mod.ts";
+import { BaseValidator, ValidationResult, createValidationResult } from "../shared/interfaces.ts";
 import { CartContentsValidator } from "./cart-contents-validator.ts";
-import { ValidationConfig, DEFAULT_VALIDATION_CONFIG } from "../config/validation-config.ts";
-import { MANDATE_MESSAGES } from "../config/validation-messages.ts";
+import { ValidationConfig, DEFAULT_VALIDATION_CONFIG } from "../../config/validation-config.ts";
+import { MANDATE_MESSAGES } from "../../config/validation-messages.ts";
 
 /**
  * Validator for CartMandate entities

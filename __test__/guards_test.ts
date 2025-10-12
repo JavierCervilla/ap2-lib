@@ -4,7 +4,7 @@
 
 import { assertEquals, assert, assertFalse } from "@std/assert";
 import { isIntentMandate, isCartMandate, getMandateType } from "../src/types/guards.ts";
-import { MandateType } from "../src/core/strategies/mandate-type-detector.ts";
+import { MandateType } from "../src/core/mandates/shared/mod.ts";
 import type { IntentMandate, CartMandate, Mandate } from "../src/types/mod.ts";
 
 // Test fixtures

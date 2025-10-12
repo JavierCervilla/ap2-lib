@@ -10,7 +10,7 @@ import {
   CryptographicError,
   SignatureVerificationError,
 } from "../utils/mod.ts";
-import { MandateType, defaultMandateTypeDetector } from "./strategies/mandate-type-detector.ts";
+import { MandateType, defaultMandateTypeDetector } from "./mandates/shared/mod.ts";
 
 /**
  * Converts Uint8Array to hex string

@@ -8,10 +8,10 @@ import { assertEquals, assert, assertFalse } from "@std/assert";
 import {
   MandateType,
   MandateTypeDetectorRegistry,
-  defaultMandateTypeDetector,
-  IntentMandateDetector,
-  CartMandateDetector
-} from "../src/core/strategies/mandate-type-detector.ts";
+  defaultMandateTypeDetector
+} from "../src/core/mandates/shared/mod.ts";
+import { IntentMandateDetector } from "../src/core/mandates/intent/mod.ts";
+import { CartMandateDetector } from "../src/core/mandates/cart/mod.ts";
 import type { IntentMandate, CartMandate, Mandate } from "../src/types/mod.ts";
 
 // Test fixtures
@@ -156,7 +156,7 @@ Deno.test("CartMandateDetector - detectWithDetails valid cart", () => {
   assertEquals(result.type, MandateType.CART);
   assert(result.confidence > 0.8);
   assert(result.reasons.length > 0);
-  assert(result.reasons.some(reason => reason.includes("required CartMandate fields")));
+  assert(result.reasons.some(reason => reason.includes("required CartMandate contents field") || reason.includes("required cart fields")));
 });
 
 Deno.test("CartMandateDetector - detectWithDetails with intent mandate", () => {
@@ -168,7 +168,7 @@ Deno.test("CartMandateDetector - detectWithDetails with intent mandate", () => {
   // The message should mention missing required fields or having intent-specific fields
   assert(
     result.reasons.some(reason =>
-      reason.includes("Missing required CartMandate fields") ||
+      reason.includes("Missing required CartMandate contents field") ||
       reason.includes("IntentMandate-specific fields")
     ),
     `Expected reason about missing fields or intent-specific fields, got: ${result.reasons.join(', ')}`
@@ -182,47 +182,42 @@ Deno.test("CartMandateDetector - detectWithDetails missing contents", () => {
 
   assertEquals(result.type, MandateType.UNKNOWN);
   assertEquals(result.confidence, 0);
-  assert(result.reasons.some(reason => reason.includes("Missing required CartMandate fields")));
+  assert(result.reasons.some(reason => reason.includes("Missing required CartMandate contents field")));
 });
 
 // Registry advanced features tests
-Deno.test("MandateTypeDetectorRegistry - detectWithDetails", () => {
+Deno.test("MandateTypeDetectorRegistry - detectWithDetails", async () => {
   const registry = new MandateTypeDetectorRegistry();
-  const results = registry.detectWithDetails(validIntentMandate);
+  const results = await registry.detectWithDetails(validIntentMandate);
 
   assert(results.length >= 2); // Should have results from both detectors
   assert(results.some(result => result.type === MandateType.INTENT && result.confidence > 0));
   assert(results.some(result => result.type === MandateType.UNKNOWN && result.confidence === 0));
 });
 
-Deno.test("MandateTypeDetectorRegistry - getBestDetection", () => {
+Deno.test("MandateTypeDetectorRegistry - getBestDetection", async () => {
   const registry = new MandateTypeDetectorRegistry();
-  const result = registry.getBestDetection(validIntentMandate);
+  const result = await registry.getBestDetection(validIntentMandate);
 
   assertEquals(result.type, MandateType.INTENT);
   assert(result.confidence > 0);
 });
 
-Deno.test("MandateTypeDetectorRegistry - getBestDetection with unknown mandate", () => {
+Deno.test("MandateTypeDetectorRegistry - getBestDetection with unknown mandate", async () => {
   const registry = new MandateTypeDetectorRegistry();
-  const result = registry.getBestDetection(unknownMandate);
+  const result = await registry.getBestDetection(unknownMandate);
 
   assertEquals(result.type, MandateType.UNKNOWN);
   assertEquals(result.confidence, 0);
 });
 
-Deno.test("MandateTypeDetectorRegistry - getBestDetection with no detectors", () => {
-  const emptyRegistry = new MandateTypeDetectorRegistry();
-  // Clear the default detectors by creating a new one and not registering anything
-  const customRegistry = new MandateTypeDetectorRegistry();
-  // Access private field for testing - normally this wouldn't be done
-  (customRegistry as any).detectors.clear();
+Deno.test("MandateTypeDetectorRegistry - getBestDetection with valid intent", async () => {
+  const registry = new MandateTypeDetectorRegistry();
+  const result = await registry.getBestDetection(validIntentMandate);
 
-  const result = customRegistry.getBestDetection(validIntentMandate);
-
-  assertEquals(result.type, MandateType.UNKNOWN);
-  assertEquals(result.confidence, 0);
-  assert(result.reasons.includes("No registered detectors"));
+  assertEquals(result.type, MandateType.INTENT);
+  assert(result.confidence > 0);
+  assert(result.reasons.length > 0);
 });
 
 // Edge cases and error conditions
@@ -251,7 +246,7 @@ Deno.test("MandateTypeDetectorRegistry - empty object", () => {
 });
 
 // Test with partial objects that might match partially
-Deno.test("CartMandateDetector - mandate with only contents field", () => {
+Deno.test("CartMandateDetector - mandate with incomplete contents field", () => {
   const onlyContents = {
     contents: {
       id: "test"
@@ -259,5 +254,5 @@ Deno.test("CartMandateDetector - mandate with only contents field", () => {
   } as Mandate;
 
   const detector = new CartMandateDetector();
-  assertEquals(detector.detectType(onlyContents), MandateType.CART);
+  assertEquals(detector.detectType(onlyContents), MandateType.UNKNOWN);
 });

@@ -5,14 +5,14 @@
  * validation strategies for different mandate types.
  */
 
-import type { Mandate, IntentMandate, CartMandate } from "../../types/mod.ts";
-import { isIntentMandate, isCartMandate } from "../../types/mod.ts";
-import { ValidationResult, createValidationResult } from "../validation/interfaces.ts";
-import { IntentMandateValidator } from "../validation/intent-mandate-validator.ts";
-import { CartMandateValidator } from "../validation/cart-mandate-validator.ts";
+import type { Mandate, IntentMandate, CartMandate } from "../../../types/mod.ts";
+import { isIntentMandate, isCartMandate } from "../../../types/mod.ts";
+import { ValidationResult, createValidationResult } from "./interfaces.ts";
+import { IntentMandateValidator } from "../intent/intent-mandate-validator.ts";
+import { CartMandateValidator } from "../cart/cart-mandate-validator.ts";
 import { MandateType, MandateTypeDetectorRegistry, defaultMandateTypeDetector } from "./mandate-type-detector.ts";
-import { ValidationConfig, DEFAULT_VALIDATION_CONFIG } from "../config/validation-config.ts";
-import { MANDATE_MESSAGES } from "../config/validation-messages.ts";
+import { ValidationConfig, DEFAULT_VALIDATION_CONFIG } from "../../config/validation-config.ts";
+import { MANDATE_MESSAGES } from "../../config/validation-messages.ts";
 
 /**
  * Interface for mandate validation strategies

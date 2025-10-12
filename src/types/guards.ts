@@ -6,7 +6,7 @@
  */
 
 import type { Mandate, IntentMandate, CartMandate } from "./mandates.ts";
-import { MandateType, defaultMandateTypeDetector } from "../core/strategies/mandate-type-detector.ts";
+import { MandateType, defaultMandateTypeDetector } from "../core/mandates/shared/mod.ts";
 
 /**
  * Type guard to check if a mandate is an IntentMandate

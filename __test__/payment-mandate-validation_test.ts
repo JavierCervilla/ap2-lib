@@ -6,8 +6,7 @@
  */
 
 import { assert, assertEquals, assertExists, assertRejects } from "@std/assert";
-import { PaymentMandateValidator } from "../src/core/validation/payment-mandate-validator.ts";
-import { PaymentMandateContentsValidator } from "../src/core/validation/payment-mandate-contents-validator.ts";
+import { PaymentMandateValidator, PaymentMandateContentsValidator } from "../src/core/mandates/payment/mod.ts";
 import type { PaymentMandate, PaymentMandateContents } from "../src/types/mod.ts";
 import { MandateValidationError } from "../src/utils/mod.ts";
 import { ValidationConfig, DEFAULT_VALIDATION_CONFIG } from "../src/core/config/validation-config.ts";

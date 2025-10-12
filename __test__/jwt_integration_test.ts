@@ -49,9 +49,7 @@ Deno.test("CartMandateClass - JWT signing and verification", async () => {
 
   // Test signing
   await cartMandate.sign(keyPair.privateKey, { keyId: keyPair.keyId }, {
-    merchantId: "jwt-test-merchant",
-    audience: "payment-gateway",
-    expiresIn: 900
+    merchantId: "jwt-test-merchant"
   });
 
   assertEquals(cartMandate.getStatus(), 'authorized');
@@ -62,7 +60,7 @@ Deno.test("CartMandateClass - JWT signing and verification", async () => {
   assert(jwt!.includes('.')); // Valid JWT structure
 
   // Test verification
-  const isValid = await cartMandate.verify(keyPair.publicKey, { keyId: keyPair.keyId }, "jwt-test-merchant", "payment-gateway");
+  const isValid = await cartMandate.verify(keyPair.publicKey, { keyId: keyPair.keyId }, "jwt-test-merchant", "payment-processor");
   assertEquals(isValid, true);
 });
 
@@ -195,14 +193,13 @@ Deno.test("CartMandateClass - Factory function with JWT signing", async () => {
 
   // Sign after creation
   await cartMandate.sign(keyPair.privateKey, undefined, {
-    merchantId: "factory-merchant",
-    audience: "factory-gateway"
+    merchantId: "factory-merchant"
   });
 
   assertEquals(cartMandate.isSigned(), true);
   assertEquals(cartMandate.getStatus(), 'authorized');
 
-  const isValid = await cartMandate.verify(keyPair.publicKey, undefined, "factory-merchant", "factory-gateway");
+  const isValid = await cartMandate.verify(keyPair.publicKey, undefined, "factory-merchant", "payment-processor");
   assertEquals(isValid, true);
 });
 
@@ -377,8 +374,7 @@ Deno.test("JWT Integration - End-to-end AP2 workflow", async () => {
   });
 
   await cartMandate.sign(merchantKeyPair.privateKey, undefined, {
-    merchantId: "e2e-merchant",
-    audience: "e2e-payment-processor"
+    merchantId: "e2e-merchant"
   });
 
   // 3. Get cart hash for PaymentMandate
@@ -417,7 +413,7 @@ Deno.test("JWT Integration - End-to-end AP2 workflow", async () => {
   paymentMandate.setUserAuthorization(userAuth);
 
   // 6. Verify complete workflow
-  const cartValid = await cartMandate.verify(merchantKeyPair.publicKey, undefined, "e2e-merchant", "e2e-payment-processor");
+  const cartValid = await cartMandate.verify(merchantKeyPair.publicKey, undefined, "e2e-merchant", "payment-processor");
   assertEquals(cartValid, true);
 
   const paymentAuthValid = await paymentMandate.verifyUserAuthorization(cartHash, paymentHash);

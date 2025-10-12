@@ -4,9 +4,9 @@
  * Specialized serializer for IntentMandate entities following the Single Responsibility Principle.
  */
 
-import type { IntentMandate } from "../../types/mod.ts";
-import { BaseJsonSerializer } from "./interfaces.ts";
-import { MANDATE_MESSAGES } from "../config/validation-messages.ts";
+import type { IntentMandate } from "../../../types/mod.ts";
+import { BaseJsonSerializer } from "../shared/interfaces.ts";
+import { MANDATE_MESSAGES } from "../../config/validation-messages.ts";
 
 /**
  * Serializer for IntentMandate entities

@@ -4,8 +4,8 @@
  * Specialized serializer for CartMandate entities following the Single Responsibility Principle.
  */
 
-import type { CartMandate } from "../../types/mod.ts";
-import { BaseJsonSerializer } from "./interfaces.ts";
+import type { CartMandate } from "../../../types/mod.ts";
+import { BaseJsonSerializer } from "../shared/interfaces.ts";
 
 /**
  * Serializer for CartMandate entities

@@ -4,12 +4,12 @@
  * Implements strategy pattern for mandate serialization using the type detection system.
  */
 
-import type { Mandate, IntentMandate, CartMandate } from "../../types/mod.ts";
+import type { Mandate, IntentMandate, CartMandate } from "../../../types/mod.ts";
 import { SerializerDeserializer } from "./interfaces.ts";
-import { IntentMandateSerializer } from "./intent-mandate-serializer.ts";
-import { CartMandateSerializer } from "./cart-mandate-serializer.ts";
-import { MandateType, MandateTypeDetectorRegistry, defaultMandateTypeDetector } from "../strategies/mandate-type-detector.ts";
-import { SERIALIZATION_MESSAGES } from "../config/validation-messages.ts";
+import { IntentMandateSerializer } from "../intent/intent-mandate-serializer.ts";
+import { CartMandateSerializer } from "../cart/cart-mandate-serializer.ts";
+import { MandateType, MandateTypeDetectorRegistry, defaultMandateTypeDetector } from "./mandate-type-detector.ts";
+import { SERIALIZATION_MESSAGES } from "../../config/validation-messages.ts";
 
 /**
  * Interface for mandate serialization strategies

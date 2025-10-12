@@ -4,18 +4,18 @@
  * Specialized validator for IntentMandate entities following the Single Responsibility Principle.
  */
 
-import type { IntentMandate } from "../../types/mod.ts";
-import { isExpired } from "../../utils/mod.ts";
-import { BaseValidator, ValidationResult, createValidationResult } from "./interfaces.ts";
+import type { IntentMandate } from "../../../types/mod.ts";
+import { isExpired } from "../../../utils/mod.ts";
+import { BaseValidator, ValidationResult, createValidationResult } from "../shared/interfaces.ts";
 import {
   RequiredStringRule,
   DateValidationRule,
   RequiredFieldRule,
-} from "./rules.ts";
-import { ValidationConfig, DEFAULT_VALIDATION_CONFIG } from "../config/validation-config.ts";
+} from "../shared/rules.ts";
+import { ValidationConfig, DEFAULT_VALIDATION_CONFIG } from "../../config/validation-config.ts";
 import {
   MANDATE_MESSAGES,
-} from "../config/validation-messages.ts";
+} from "../../config/validation-messages.ts";
 
 /**
  * Validator for IntentMandate entities

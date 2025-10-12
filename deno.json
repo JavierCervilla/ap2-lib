@@ -7,6 +7,7 @@
     "dev": "deno run --watch src/main.ts",
     "test": "deno test --allow-net --allow-read --coverage=coverage",
     "coverage": "deno coverage coverage",
+    "coverage:clean": "rm -rf coverage",
     "coverage:detailed": "deno coverage coverage --detailed",
     "build": "deno run -A ./scripts/build.ts",
     "npm": "deno task build && cd npm && npm publish --access public",

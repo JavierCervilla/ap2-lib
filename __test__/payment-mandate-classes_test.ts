@@ -9,7 +9,7 @@ import { assert, assertEquals, assertExists, assertRejects } from "@std/assert";
 import {
   PaymentMandateClass,
   PaymentMandateContentsClass,
-} from "../src/core/payment-mandate-classes.ts";
+} from "../src/core/mandates/payment/mod.ts";
 import type { PaymentMandate, PaymentMandateContents } from "../src/types/mod.ts";
 import { MandateValidationError } from "../src/utils/mod.ts";
 

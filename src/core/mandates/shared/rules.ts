@@ -7,8 +7,8 @@
 
 import type { ValidationRule, ValidationResult } from "./interfaces.ts";
 import { createValidationResult } from "./interfaces.ts";
-import { FieldValidator } from "../utils/field-validator.ts";
-import { ValidationConfig } from "../config/validation-config.ts";
+import { FieldValidator } from "../../utils/field-validator.ts";
+import { ValidationConfig } from "../../config/validation-config.ts";
 
 /**
  * Abstract base class for validation rules
@@ -206,6 +206,6 @@ export class PositiveAmountRule<T> extends BaseValidationRule<T> {
       return createValidationResult(false, ["Invalid amount - must be a positive number"]);
     }
 
-    return createValidationResult(true);
+    return createValidationResult(true, []);
   }
 }

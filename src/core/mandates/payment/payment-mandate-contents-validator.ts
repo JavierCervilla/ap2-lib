@@ -4,9 +4,9 @@
  * Specialized validator for PaymentMandateContents entities following the Single Responsibility Principle.
  */
 
-import type { PaymentMandateContents } from "../../types/payment-mandate.ts";
-import { BaseValidator, ValidationResult, createValidationResult } from "./interfaces.ts";
-import { ValidationConfig, DEFAULT_VALIDATION_CONFIG } from "../config/validation-config.ts";
+import type { PaymentMandateContents } from "../../../types/payment-mandate.ts";
+import { BaseValidator, ValidationResult, createValidationResult } from "../shared/interfaces.ts";
+import { ValidationConfig, DEFAULT_VALIDATION_CONFIG } from "../../config/validation-config.ts";
 
 /**
  * Validator for PaymentMandateContents entities

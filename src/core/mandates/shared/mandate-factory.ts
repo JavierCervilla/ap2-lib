@@ -5,16 +5,13 @@
  * Follows SOLID principles with class-based implementations.
  */
 
-import type { IntentMandate, CartContents, CartMandate } from "../types/mod.ts";
-import type { PaymentRequest } from "../types/mod.ts";
+import type { IntentMandate, CartContents, CartMandate } from "../../../types/mod.ts";
+import type { PaymentRequest } from "../../../types/mod.ts";
 
 // Import class-based implementations
-import {
-  IntentMandateClass,
-  CartMandateClass,
-  createMandateClass,
-  type MandateStatus
-} from "./mandate-classes.ts";
+import { IntentMandateClass } from "../intent/intent-mandate-class.ts";
+import { CartMandateClass } from "../cart/cart-mandate-class.ts";
+import { createMandateClass, type MandateStatus } from "./mandate-class-factory.ts";
 
 /**
  * Input parameters for creating an IntentMandate
@@ -117,8 +114,7 @@ export async function createCartMandate(
       signingOptions.privateKey,
       { algorithm: signingOptions.algorithm || 'RS256' },
       {
-        merchantId: signingOptions.merchantId || 'default-merchant',
-        audience: signingOptions.audience
+        merchantId: signingOptions.merchantId || 'default-merchant'
       }
     );
   }
@@ -152,4 +148,4 @@ export {
   CartMandateClass,
   createMandateClass,
   type MandateStatus
-} from "./mandate-classes.ts";
+};

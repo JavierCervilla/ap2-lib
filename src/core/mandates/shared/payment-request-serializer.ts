@@ -4,7 +4,7 @@
  * Specialized serializer for PaymentRequest entities following the Single Responsibility Principle.
  */
 
-import type { PaymentRequest } from "../../types/mod.ts";
+import type { PaymentRequest } from "../../../types/mod.ts";
 import { BaseJsonSerializer } from "./interfaces.ts";
 
 /**

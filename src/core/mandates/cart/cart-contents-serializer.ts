@@ -4,8 +4,8 @@
  * Specialized serializer for CartContents entities following the Single Responsibility Principle.
  */
 
-import type { CartContents } from "../../types/mod.ts";
-import { BaseJsonSerializer } from "./interfaces.ts";
+import type { CartContents } from "../../../types/mod.ts";
+import { BaseJsonSerializer } from "../shared/interfaces.ts";
 
 /**
  * Serializer for CartContents entities
