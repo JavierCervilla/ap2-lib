@@ -132,4 +132,23 @@ export class PaymentMandateContentsClass {
     await contents.validate();
     return contents;
   }
+
+  /**
+   * Create a new PaymentMandateContents instance with custom options (for testing)
+   * @internal - This method is for testing purposes to achieve branch coverage
+   */
+  static async createWithOptions(
+    data: PaymentMandateContents,
+    options?: { id?: string; createdAt?: Date }
+  ): Promise<PaymentMandateContentsClass> {
+    // Set timestamp if not provided
+    const dataWithTimestamp = {
+      ...data,
+      timestamp: data.timestamp || new Date().toISOString()
+    };
+
+    const contents = new PaymentMandateContentsClass(dataWithTimestamp, options);
+    await contents.validate();
+    return contents;
+  }
 }
