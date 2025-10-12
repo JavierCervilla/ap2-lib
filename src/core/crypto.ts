@@ -11,6 +11,7 @@ import {
   SignatureVerificationError,
 } from "../utils/mod.ts";
 import { DERSignatureUtils } from "./utils/der-signature.ts";
+import { MandateType, defaultMandateTypeDetector } from "./strategies/mandate-type-detector.ts";
 
 /**
  * ECDSA Key pair for signing and verification
@@ -245,18 +246,23 @@ export async function signMandate<T extends Mandate>(
   const signatureHex = signature.r + signature.s + signature.v.toString(16).padStart(2, '0');
 
   // Add signature to appropriate field based on mandate type
-  if ('contents' in mandate) {
-    // CartMandate
-    return {
-      ...mandate,
-      merchant_authorization: signatureHex,
-    } as T & { merchant_authorization: string };
-  } else {
-    // IntentMandate
-    return {
-      ...mandate,
-      signature: signatureHex,
-    } as T & { signature: string };
+  const mandateType = defaultMandateTypeDetector.detectType(mandate);
+
+  switch (mandateType) {
+    case MandateType.CART:
+      // CartMandate
+      return {
+        ...mandate,
+        merchant_authorization: signatureHex,
+      } as T & { merchant_authorization: string };
+    case MandateType.INTENT:
+      // IntentMandate
+      return {
+        ...mandate,
+        signature: signatureHex,
+      } as T & { signature: string };
+    default:
+      throw new CryptographicError(`Unsupported mandate type: ${mandateType}`);
   }
 }
 
@@ -272,14 +278,27 @@ export async function verifyMandateSignature(
   mandate: Mandate & { signature?: string; merchant_authorization?: string },
   publicKeyHex: string
 ): Promise<VerificationResult> {
-  // Extract signature from mandate
+  // Extract signature from mandate based on its type
+  const mandateType = defaultMandateTypeDetector.detectType(mandate);
   let signatureHex: string;
-  if ('contents' in mandate && mandate.merchant_authorization) {
-    signatureHex = mandate.merchant_authorization;
-  } else if ('signature' in mandate && mandate.signature) {
-    signatureHex = mandate.signature;
-  } else {
-    throw new SignatureVerificationError("Mandate is not signed");
+
+  switch (mandateType) {
+    case MandateType.CART:
+      if (mandate.merchant_authorization) {
+        signatureHex = mandate.merchant_authorization;
+      } else {
+        throw new SignatureVerificationError("CartMandate is not signed (missing merchant_authorization)");
+      }
+      break;
+    case MandateType.INTENT:
+      if (mandate.signature) {
+        signatureHex = mandate.signature;
+      } else {
+        throw new SignatureVerificationError("IntentMandate is not signed (missing signature)");
+      }
+      break;
+    default:
+      throw new SignatureVerificationError(`Unsupported mandate type: ${mandateType}`);
   }
 
   // Remove signature from mandate for verification

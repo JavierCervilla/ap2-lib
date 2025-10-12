@@ -6,3 +6,4 @@ export * from "./mandates.ts";
 export * from "./payment_request.ts";
 export * from './contact_picker.ts';
 export * from './constants.ts';
+export * from './guards.ts';

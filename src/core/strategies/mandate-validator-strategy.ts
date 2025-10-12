@@ -6,6 +6,7 @@
  */
 
 import type { Mandate, IntentMandate, CartMandate } from "../../types/mod.ts";
+import { isIntentMandate, isCartMandate } from "../../types/mod.ts";
 import { ValidationResult, createValidationResult } from "../validation/interfaces.ts";
 import { IntentMandateValidator } from "../validation/intent-mandate-validator.ts";
 import { CartMandateValidator } from "../validation/cart-mandate-validator.ts";
@@ -157,31 +158,26 @@ export class MandateValidationStrategyRegistry {
 
     // Handle case where mandate type cannot be determined
     if (mandateType === MandateType.UNKNOWN) {
-      // Default to checking for required fields of both types
+      // Use type guards for more reliable detection
       const errors: string[] = [];
 
-      const hasIntentFields = 'intent_expiry' in mandate || 'natural_language_description' in mandate;
-      const hasCartFields = 'contents' in mandate;
-
-      if (hasIntentFields) {
-        // Looks like IntentMandate, validate its required fields
+      if (isIntentMandate(mandate)) {
+        // Detected as IntentMandate, validate its required fields
         const intentStrategy = this.getStrategy(MandateType.INTENT);
         if (intentStrategy) {
           return await intentStrategy.validateIntegrity(mandate);
         }
-      } else if (hasCartFields) {
-        // Looks like CartMandate, validate its required fields
+      } else if (isCartMandate(mandate)) {
+        // Detected as CartMandate, validate its required fields
         const cartStrategy = this.getStrategy(MandateType.CART);
         if (cartStrategy) {
           return await cartStrategy.validateIntegrity(mandate);
         }
       }
 
-      if (!hasIntentFields && !hasCartFields) {
-        errors.push(MANDATE_MESSAGES.MISSING_CONTENTS);
-      }
-
-      return createValidationResult(errors.length === 0, errors);
+      // If neither type guard matches, it's truly unknown
+      errors.push(MANDATE_MESSAGES.MISSING_CONTENTS);
+      return createValidationResult(false, errors);
     }
 
     const strategy = this.getStrategy(mandateType);

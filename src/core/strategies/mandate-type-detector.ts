@@ -44,6 +44,9 @@ export abstract class BaseMandateTypeDetector implements MandateTypeDetector {
    * Check if object has specific fields
    */
   protected hasFields(obj: any, fields: string[]): boolean {
+    if (!obj || typeof obj !== 'object') {
+      return false;
+    }
     return fields.every(field => field in obj);
   }
 
@@ -51,6 +54,9 @@ export abstract class BaseMandateTypeDetector implements MandateTypeDetector {
    * Check if object has any of the specified fields
    */
   protected hasAnyFields(obj: any, fields: string[]): boolean {
+    if (!obj || typeof obj !== 'object') {
+      return false;
+    }
     return fields.some(field => field in obj);
   }
 }
