@@ -105,7 +105,7 @@ export class CartMandateClass extends BaseMandate<CartMandate> {
         keyId: keyConfig?.keyId
       };
 
-      // Verify JWT
+      // Use standard JWT verification with enhanced validation
       const verificationResult = await jwtService.verifyMerchantAuthorization(jwt, {
         keyConfig: { ...defaultKeyConfig, ...keyConfig },
         audience: expectedAudience,
@@ -114,14 +114,23 @@ export class CartMandateClass extends BaseMandate<CartMandate> {
       });
 
       if (!verificationResult.valid || !verificationResult.payload) {
+        // Log detailed validation errors for debugging
+        if (verificationResult.validationErrors?.length) {
+          console.warn('JWT validation failed:', verificationResult.validationErrors);
+        }
         return false;
       }
 
-      // Verify cart hash integrity
+      // Verify cart hash integrity using the same method as used during signing
       const expectedCartHash = await jwtService.computeCartHash(this._data.contents);
       const actualCartHash = verificationResult.payload.cart_hash;
 
-      return expectedCartHash === actualCartHash;
+      if (expectedCartHash !== actualCartHash) {
+        console.warn('Cart hash mismatch:', { expected: expectedCartHash, actual: actualCartHash });
+        return false;
+      }
+
+      return true;
     } catch (error) {
       return false;
     }

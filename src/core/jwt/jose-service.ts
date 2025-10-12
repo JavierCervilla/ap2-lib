@@ -23,6 +23,18 @@ import type {
   JWTVerificationResult
 } from './interfaces.ts';
 
+import {
+  JTIValidator,
+  defaultJTIValidator,
+  type IJTIValidator
+} from './jti-validator.ts';
+
+import {
+  ChecksumValidator,
+  defaultChecksumValidator,
+  type IChecksumValidator
+} from './checksum-validator.ts';
+
 /**
  * JOSE-based JWT Signer Implementation
  * Follows Single Responsibility Principle (SRP)
@@ -88,14 +100,28 @@ export class JOSEJWTSigner implements IJWTSigner {
 }
 
 /**
- * JOSE-based JWT Verifier Implementation
- * Follows Single Responsibility Principle (SRP)
+ * JOSE-based JWT Verifier Implementation with Comprehensive Validation
+ * Follows Single Responsibility Principle (SRP) with enhanced security
  */
 export class JOSEJWTVerifier implements IJWTVerifier {
+  constructor(
+    private jtiValidator: IJTIValidator = defaultJTIValidator,
+    private checksumValidator: IChecksumValidator = defaultChecksumValidator
+  ) {}
+
   async verifyMerchantAuthorization(
     jwt: string,
     options: JWTVerifyOptions
   ): Promise<JWTVerificationResult> {
+    const result: JWTVerificationResult = {
+      valid: false,
+      signatureValid: false,
+      expired: false,
+      jtiValid: false,
+      checksumValid: false,
+      validationErrors: []
+    };
+
     try {
       // Import public key
       const publicKey = await this.importPublicKey(
@@ -103,36 +129,133 @@ export class JOSEJWTVerifier implements IJWTVerifier {
         options.keyConfig.algorithm
       );
 
-      // Verify JWT
-      const { payload } = await jose.jwtVerify(jwt, publicKey, {
-        audience: options.audience,
-        issuer: options.issuer,
-        clockTolerance: options.clockTolerance || 30
-      });
+      // Basic JWT verification (signature + standard claims)
+      let jwtVerifyResult;
+      try {
+        jwtVerifyResult = await jose.jwtVerify(jwt, publicKey, {
+          audience: options.audience,
+          issuer: options.issuer,
+          clockTolerance: options.clockTolerance || 30
+        });
+        result.signatureValid = true;
+      } catch (jwtError) {
+        const errorMessage = jwtError instanceof Error ? jwtError.message : String(jwtError);
+        result.signatureValid = false;
+        result.expired = errorMessage.includes('expired') || errorMessage.includes('exp');
+        result.error = errorMessage;
+        result.validationErrors!.push(`JWT verification failed: ${errorMessage}`);
+
+        // Return early if basic JWT verification fails
+        return result;
+      }
 
       // Validate payload structure
-      const merchantPayload = this.validateMerchantPayload(payload);
+      let merchantPayload: MerchantAuthorizationPayload;
+      try {
+        merchantPayload = this.validateMerchantPayload(jwtVerifyResult.payload);
+        result.payload = merchantPayload;
+      } catch (payloadError) {
+        result.validationErrors!.push(`Payload validation failed: ${payloadError instanceof Error ? payloadError.message : String(payloadError)}`);
+        return result;
+      }
 
-      return {
-        valid: true,
-        payload: merchantPayload,
-        signatureValid: true,
-        expired: false
-      };
+      // Enhanced JTI validation for replay attack prevention
+      const jtiValidationResult = await this.jtiValidator.validateJTI(merchantPayload);
+      result.jtiValid = jtiValidationResult.valid;
+
+      if (!jtiValidationResult.valid) {
+        result.validationErrors!.push(jtiValidationResult.error || 'JTI validation failed');
+        if (jtiValidationResult.isReplay) {
+          result.validationErrors!.push('SECURITY ALERT: Potential replay attack detected');
+        }
+      } else {
+        // Mark JTI as used if validation passes
+        try {
+          await this.jtiValidator.markJTIAsUsed(merchantPayload);
+        } catch (markError) {
+          result.validationErrors!.push(`Failed to mark JTI as used: ${markError instanceof Error ? markError.message : String(markError)}`);
+        }
+      }
+
+      // Comprehensive checksum validation
+      // Note: Cart contents validation is handled at a higher level in CartMandateClass
+      // Here we validate the JWT structure and components
+      const checksumResult = await this.checksumValidator.validateJWTComponents(jwt);
+      const checksumValid = checksumResult.every(component => component.valid);
+      result.checksumValid = checksumValid;
+
+      if (!checksumValid) {
+        const checksumErrors = checksumResult
+          .filter(c => !c.valid)
+          .map(c => `${c.type}: ${c.error}`)
+          .join(', ');
+        result.validationErrors!.push(`Checksum validation failed: ${checksumErrors}`);
+      }
+
+      // Overall validation result
+      result.valid = result.signatureValid && result.jtiValid && result.checksumValid;
+
+      // Set final error message if validation failed
+      if (!result.valid) {
+        result.error = result.validationErrors!.length > 0
+          ? result.validationErrors![0]
+          : 'Comprehensive JWT validation failed';
+      }
+
+      return result;
+
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-
-      // Check for specific error types
-      const expired = errorMessage.includes('expired') || errorMessage.includes('exp');
-      const signatureInvalid = errorMessage.includes('signature') || errorMessage.includes('invalid');
-
-      return {
-        valid: false,
-        error: errorMessage,
-        expired,
-        signatureValid: !signatureInvalid
-      };
+      result.error = errorMessage;
+      result.validationErrors!.push(`Verification error: ${errorMessage}`);
+      return result;
     }
+  }
+
+  /**
+   * Verify JWT with cart contents for complete integrity validation
+   * This method provides the highest level of security validation
+   */
+  async verifyWithCartContents(
+    jwt: string,
+    options: JWTVerifyOptions,
+    expectedCartContents: unknown
+  ): Promise<JWTVerificationResult> {
+    // First perform standard verification
+    const result = await this.verifyMerchantAuthorization(jwt, options);
+
+    // If basic verification failed, return early
+    if (!result.valid || !result.payload) {
+      return result;
+    }
+
+    try {
+      // Perform comprehensive checksum validation including cart contents
+      const checksumResult = await this.checksumValidator.validateJWTChecksums(
+        jwt,
+        expectedCartContents,
+        result.payload
+      );
+
+      result.checksumValid = checksumResult.valid;
+
+      if (!checksumResult.valid) {
+        result.valid = false;
+        result.validationErrors = result.validationErrors || [];
+        result.validationErrors.push(...checksumResult.errors);
+        result.error = checksumResult.errors[0] || 'Cart checksum validation failed';
+      }
+
+    } catch (checksumError) {
+      result.checksumValid = false;
+      result.valid = false;
+      const errorMessage = checksumError instanceof Error ? checksumError.message : String(checksumError);
+      result.validationErrors = result.validationErrors || [];
+      result.validationErrors.push(`Cart checksum error: ${errorMessage}`);
+      result.error = errorMessage;
+    }
+
+    return result;
   }
 
   private async importPublicKey(publicKey: string, algorithm: JWTAlgorithm): Promise<CryptoKey> {
@@ -222,7 +345,7 @@ export class JOSEJWTKeyManager implements IJWTKeyManager {
 export class JOSEJWTService implements IJWTService {
   constructor(
     private signer: IJWTSigner = new JOSEJWTSigner(),
-    private verifier: IJWTVerifier = new JOSEJWTVerifier(),
+    public verifier: IJWTVerifier = new JOSEJWTVerifier(),
     private keyManager: IJWTKeyManager = new JOSEJWTKeyManager()
   ) {}
 

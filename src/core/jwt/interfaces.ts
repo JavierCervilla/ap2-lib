@@ -86,6 +86,12 @@ export interface JWTVerificationResult {
   expired?: boolean;
   /** Whether the signature is valid */
   signatureValid?: boolean;
+  /** Whether JTI validation passed (replay attack prevention) */
+  jtiValid?: boolean;
+  /** Whether checksum validation passed */
+  checksumValid?: boolean;
+  /** Detailed validation errors */
+  validationErrors?: string[];
 }
 
 /**
