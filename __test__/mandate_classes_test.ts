@@ -347,3 +347,50 @@ Deno.test("Error handling - Invalid mandate data", async () => {
     MandateValidationError
   );
 });
+
+Deno.test("CartMandateClass - Constructor with custom options", async () => {
+  const futureDate = createFutureISO8601(TIME_CONSTANTS.DAY);
+  const cartContents: CartContents = {
+    id: "constructor_test_cart",
+    user_cart_confirmation_required: false,
+    payment_request: {
+      id: "payment-constructor-test",
+      methodData: [{ supportedMethods: "basic-card" }],
+      details: {
+        total: {
+          label: "Total",
+          amount: { currency: "USD", value: "199.99" },
+          refund_period: 30
+        }
+      },
+      options: {}
+    },
+    cart_expiry: futureDate,
+    merchant_name: "Constructor Test Merchant",
+  };
+
+  const cartData: CartMandate = {
+    contents: cartContents,
+  };
+
+  const mandate = await CartMandateClass.createNew(cartData);
+
+  assertEquals(mandate.getStatus(), 'pending');
+  assertEquals(mandate.getData().contents.id, "constructor_test_cart");
+  assertExists(mandate.getId());
+  assertExists(mandate.getCreatedAt());
+});
+
+Deno.test("createMandateFromData - Unknown mandate type error", async () => {
+  await assertRejects(
+    async () => {
+      const unknownData = {
+        unknown_field: "test"
+      } as any;
+
+      await createMandateFromData(unknownData);
+    },
+    MandateValidationError,
+    "Unknown mandate type"
+  );
+});

@@ -25,6 +25,8 @@ import {
   serializeMandate,
   deserializeMandate,
 } from "../src/core/serialization.ts";
+import { IntentMandateSerializer } from "../src/core/serialization/intent-mandate-serializer.ts";
+import { MandateSerializationStrategyRegistry } from "../src/core/serialization/mandate-serialization-strategy.ts";
 
 // Test data fixtures
 const validIntentMandate: IntentMandate = {
@@ -282,6 +284,52 @@ Deno.test("deserializeMandate - Throws on unknown mandate type", async () => {
 });
 
 // Additional tests to improve coverage
+
+Deno.test("IntentMandateSerializer - Missing intent_expiry error", async () => {
+  const serializer = IntentMandateSerializer.create();
+
+  const invalidJson = JSON.stringify({
+    user_cart_confirmation_required: true,
+    natural_language_description: "Test description"
+    // Missing intent_expiry
+  });
+
+  await assertRejects(
+    () => serializer.deserialize(invalidJson),
+    Error,
+    "Missing required field 'intent_expiry'"
+  );
+});
+
+Deno.test("IntentMandateSerializer - checkBooleanFields method", async () => {
+  const serializer = IntentMandateSerializer.create();
+
+  // Test with undefined boolean field
+  const jsonWithUndefinedField = JSON.stringify({
+    user_cart_confirmation_required: true,
+    natural_language_description: "Test description",
+    intent_expiry: createFutureISO8601(TIME_CONSTANTS.DAY),
+    requires_refundability: undefined
+  });
+
+  // This should not throw but should handle undefined properly
+  const result = await serializer.deserialize(jsonWithUndefinedField);
+  assertEquals(result.requires_refundability, undefined);
+});
+
+Deno.test("serializeMandate/deserializeMandate - Unknown mandate type errors", async () => {
+  await assertRejects(
+    () => serializeMandate({unknown_type: "test"} as any),
+    Error,
+    "Unknown mandate type"
+  );
+
+  await assertRejects(
+    () => deserializeMandate(JSON.stringify({unknown_type: "test"})),
+    Error,
+    "Unknown mandate type"
+  );
+});
 
 Deno.test("deserializeCartContents - Throws on missing id field", async () => {
   const invalidJson = JSON.stringify({

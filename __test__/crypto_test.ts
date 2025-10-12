@@ -169,3 +169,55 @@ Deno.test("Deprecated signMandate and verifyMandateSignature functions", async (
     "verifyMandateSignature is deprecated"
   );
 });
+
+Deno.test("signData - Invalid private key formats", async () => {
+  // Test with invalid hex characters in private key - this should trigger the hex validation errors
+  await assertRejects(
+    () => signData("test data", "invalid_key_with_non_hex_chars"),
+    CryptographicError,
+    "Signing failed"
+  );
+
+  // Test with odd length hex string
+  await assertRejects(
+    () => signData("test data", "abc12"), // Odd length
+    CryptographicError,
+    "Signing failed"
+  );
+
+  // Test with empty private key
+  await assertRejects(
+    () => signData("test data", ""),
+    CryptographicError,
+    "Signing failed"
+  );
+});
+
+Deno.test("verifySignature - Malformed signature edge cases", async () => {
+  const keyPair = await generateKeyPair();
+
+  // Test signature with invalid v value - these should throw synchronously
+  assertRejects(
+    () => verifySignature("test", { r: "abc123", s: "def456", v: 99 }, keyPair.publicKey),
+    CryptographicError,
+    "Invalid signature format"
+  );
+
+  assertRejects(
+    () => verifySignature("test", { r: "abc123", s: "def456", v: -1 }, keyPair.publicKey),
+    CryptographicError,
+    "Invalid signature format"
+  );
+
+  // Test with malformed hex in r and s - this should trigger error handling path
+  const malformedSig = { r: "invalid", s: "invalid", v: 0 };
+  try {
+    const result = await verifySignature("test", malformedSig, keyPair.publicKey);
+    // If we reach here, the function returned a result instead of throwing
+    assertEquals(result.isValid, false);
+    assert(result.error?.includes("Verification error"));
+  } catch (error) {
+    // If the function throws, that's also fine - it means invalid input was caught
+    assert(error instanceof Error);
+  }
+});

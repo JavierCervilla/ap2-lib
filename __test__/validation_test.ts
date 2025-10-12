@@ -698,3 +698,181 @@ Deno.test("Validation functions - Edge cases with null/undefined", async () => {
   const unknownMandateResult = await validateMandate(unknownMandate);
   assertEquals(unknownMandateResult.isValid, false);
 });
+
+// Import additional modules for specific function testing
+import {
+  validateCartMandate,
+  validatePaymentMandate,
+  validatePaymentMandateContents,
+  validatePaymentMandateIntegrity,
+  checkPaymentMandateExpiry
+} from "../src/core/validation.ts";
+import { ValidationMessageFormatter, formatMessage } from "../src/core/config/validation-messages.ts";
+import type { CartMandate } from "../src/types/mod.ts";
+import type { PaymentMandate } from "../src/types/payment-mandate.ts";
+
+Deno.test("FieldValidator - Additional validation methods", () => {
+  // Test validateFieldExists
+  const validFieldResult = FieldValidator.validateFieldExists("value", "testField");
+  assertEquals(validFieldResult.isValid, true);
+
+  const nullFieldResult = FieldValidator.validateFieldExists(null, "testField");
+  assertEquals(nullFieldResult.isValid, false);
+  assert(nullFieldResult.error?.includes("testField"));
+
+  const undefinedFieldResult = FieldValidator.validateFieldExists(undefined, "testField");
+  assertEquals(undefinedFieldResult.isValid, false);
+  assert(undefinedFieldResult.error?.includes("testField"));
+
+  // Test validateBooleanExists
+  const validBooleanResult = FieldValidator.validateBooleanExists(true, "boolField");
+  assertEquals(validBooleanResult.isValid, true);
+
+  const falseBooleanResult = FieldValidator.validateBooleanExists(false, "boolField");
+  assertEquals(falseBooleanResult.isValid, true);
+
+  const undefinedBooleanResult = FieldValidator.validateBooleanExists(undefined, "boolField");
+  assertEquals(undefinedBooleanResult.isValid, false);
+  assert(undefinedBooleanResult.error?.includes("boolField"));
+});
+
+Deno.test("FieldValidator - String validation with length limits", () => {
+  const configWithLimits = {
+    allowWhitespaceOnly: false,
+    maxDescriptionLength: 10,
+    minDescriptionLength: 3
+  };
+
+  // Test max length validation
+  const tooLongResult = FieldValidator.validateRequiredString("This string is way too long", "testField", configWithLimits);
+  assertEquals(tooLongResult.isValid, false);
+  assert(tooLongResult.error?.includes("cannot exceed"));
+
+  // Test min length validation
+  const tooShortResult = FieldValidator.validateRequiredString("hi", "testField", configWithLimits);
+  assertEquals(tooShortResult.isValid, false);
+  assert(tooShortResult.error?.includes("must be at least"));
+
+  // Test valid length
+  const validLengthResult = FieldValidator.validateRequiredString("valid", "testField", configWithLimits);
+  assertEquals(validLengthResult.isValid, true);
+});
+
+Deno.test("FieldValidator - Date and numeric validation", () => {
+  // Test validateDateField (correct method name)
+  const validDateResult = FieldValidator.validateDateField("2024-12-01T10:00:00Z", "dateField", true);
+  assertEquals(validDateResult.isValid, true);
+
+  const invalidDateResult = FieldValidator.validateDateField("invalid-date", "dateField", true);
+  assertEquals(invalidDateResult.isValid, false);
+
+  const emptyDateResult = FieldValidator.validateDateField("", "dateField", true);
+  assertEquals(emptyDateResult.isValid, false);
+  assert(emptyDateResult.error?.includes("is required"));
+
+  // Test validateNumericRange (correct method name)
+  const validNumberResult = FieldValidator.validateNumericRange(42, "numField", 0, 100);
+  assertEquals(validNumberResult.isValid, true);
+
+  const nanResult = FieldValidator.validateNumericRange(NaN, "numField", 0, 100);
+  assertEquals(nanResult.isValid, false);
+  assert(nanResult.error?.includes("must be a valid number"));
+
+  // Test validateNonEmptyArray
+  const validArrayResult = FieldValidator.validateNonEmptyArray(["item1", "item2"], "items");
+  assertEquals(validArrayResult.isValid, true);
+
+  const emptyArrayResult = FieldValidator.validateNonEmptyArray([], "items");
+  assertEquals(emptyArrayResult.isValid, false);
+  assert(emptyArrayResult.error?.includes("At least one"));
+});
+
+Deno.test("Unused validation functions coverage", async () => {
+  const futureDate = createFutureISO8601(TIME_CONSTANTS.DAY);
+
+  // Test validateCartMandate
+  const cartData: CartMandate = {
+    contents: {
+      id: "test-cart",
+      user_cart_confirmation_required: true,
+      payment_request: {
+        id: "payment-test",
+        methodData: [{ supportedMethods: "basic-card" }],
+        details: {
+          total: { label: "Total", amount: { currency: "USD", value: "50.00" }, refund_period: 30 }
+        },
+        options: {}
+      },
+      cart_expiry: futureDate,
+      merchant_name: "Test Merchant",
+    }
+  };
+
+  const cartValidationResult = await validateCartMandate(cartData);
+  assertEquals(cartValidationResult.isValid, true);
+
+  // Test validatePaymentMandate and related functions
+  const paymentMandateData: PaymentMandate = {
+    payment_mandate_contents: {
+      payment_mandate_id: "pm_test",
+      payment_details_id: "pd_test",
+      merchant_agent: "test-agent",
+      payment_details_total: {
+        label: "Test Payment",
+        amount: { currency: "USD", value: "100.00" },
+        refund_period: 30
+      },
+      payment_response: {
+        requestId: "req_test",
+        methodName: "basic-card",
+        details: {},
+        shippingOption: undefined,
+        shippingAddress: undefined,
+        payerName: "Test Payer",
+        payerEmail: "test@example.com",
+        payerPhone: "+1234567890"
+      },
+      timestamp: new Date().toISOString()
+    }
+  };
+
+  const paymentValidationResult = await validatePaymentMandate(paymentMandateData);
+  assertEquals(paymentValidationResult.isValid, true);
+
+  const paymentContentsResult = await validatePaymentMandateContents(paymentMandateData.payment_mandate_contents);
+  assertEquals(paymentContentsResult.isValid, true);
+
+  const paymentIntegrityResult = await validatePaymentMandateIntegrity(paymentMandateData);
+  assertEquals(paymentIntegrityResult.isValid, true);
+
+  const paymentExpiryResult = await checkPaymentMandateExpiry(paymentMandateData);
+  assertEquals(paymentExpiryResult, false); // Not expired
+});
+
+Deno.test("ValidationMessageFormatter - Message formatting", () => {
+  // Test formatMessage with substitutions
+  const messageWithPlaceholder = "Error in {fieldName}: {errorType}";
+  const formattedMessage = formatMessage(messageWithPlaceholder, {
+    fieldName: "testField",
+    errorType: "validation failed"
+  });
+  assertEquals(formattedMessage, "Error in testField: validation failed");
+
+  // Test formatMessage with missing substitution
+  const partialFormatted = formatMessage("Error in {fieldName}: {missing}", {
+    fieldName: "testField"
+  });
+  assertEquals(partialFormatted, "Error in testField: {missing}");
+
+  // Test formatPaymentRequestError
+  const paymentError = ValidationMessageFormatter.formatPaymentRequestError("Invalid amount");
+  assertEquals(paymentError, "Payment request: Invalid amount");
+
+  // Test formatDisplayItemError
+  const displayItemError = ValidationMessageFormatter.formatDisplayItemError("Item {index} is invalid", 0);
+  assertEquals(displayItemError, "Item 1 is invalid");
+
+  // Test formatRefundPeriodError
+  const refundPeriodError = ValidationMessageFormatter.formatRefundPeriodError(1, 365);
+  assert(refundPeriodError.includes("1") && refundPeriodError.includes("365"));
+});

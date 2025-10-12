@@ -306,3 +306,45 @@ Deno.test("JWT Service - Comprehensive SOLID architecture test", async () => {
 
   assertEquals(verification.valid, true);
 });
+
+Deno.test("JWT Service - Error handling for signing failures", async () => {
+  const keyPair = await jwtService.generateKeyPair('RS256');
+
+  // Create invalid payload to trigger signing error
+  const payload = {
+    iss: "test-merchant",
+    sub: "test-merchant",
+    aud: "payment-processor",
+    cart_hash: "test-hash"
+  };
+
+  // Corrupt private key to trigger error path
+  const corruptedKeyPair = {
+    ...keyPair,
+    privateKey: "corrupted-key-data"
+  };
+
+  await assertRejects(
+    () => jwtService.signMerchantAuthorization(payload, {
+      keyConfig: corruptedKeyPair,
+      expiresIn: 900
+    }),
+    Error,
+    "Failed to sign JWT"
+  );
+});
+
+
+Deno.test("JWT Service - Public key import error handling", async () => {
+  const keyManager = new JOSEJWTKeyManager();
+
+  // Test with malformed JWK string
+  const invalidKeyConfig: JWTKeyConfig = {
+    privateKey: "valid-private-key",
+    publicKey: "{invalid-json",
+    algorithm: 'RS256'
+  };
+
+  const isValid = await keyManager.validateKeyConfig(invalidKeyConfig);
+  assertEquals(isValid, false);
+});
