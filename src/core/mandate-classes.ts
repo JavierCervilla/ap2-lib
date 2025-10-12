@@ -8,6 +8,7 @@
 import type { IntentMandate, CartMandate, Mandate } from "../types/mod.ts";
 import { MandateValidationError, DateParseError } from "../utils/mod.ts";
 import { signMandate, verifyMandateSignature, type VerificationResult } from "./crypto.ts";
+import { jwtService, type JWTKeyConfig, type JWTAlgorithm } from "./jwt/mod.ts";
 import { IntentMandateValidator } from "./validation/intent-mandate-validator.ts";
 import { CartMandateValidator } from "./validation/cart-mandate-validator.ts";
 import { IntentMandateSerializer } from "./serialization/intent-mandate-serializer.ts";
@@ -303,20 +304,24 @@ export class IntentMandateClass extends BaseMandate<IntentMandate> {
 
 /**
  * Class for CartMandate with specific functionality
+ * Uses JWT for merchant_authorization as per AP2 specification
  */
 export class CartMandateClass extends BaseMandate<CartMandate> {
   private validator: CartMandateValidator;
   private serializer: CartMandateSerializer;
+  private _merchantAuthorization?: string; // JWT token
 
   private constructor(data: CartMandate, options?: {
     id?: string;
     createdAt?: Date;
     status?: MandateStatus;
     signature?: string;
+    merchantAuthorization?: string;
   }) {
     super(data, options);
     this.validator = new CartMandateValidator();
     this.serializer = CartMandateSerializer.create();
+    this._merchantAuthorization = options?.merchantAuthorization;
   }
 
   protected async validate(): Promise<void> {
@@ -326,32 +331,124 @@ export class CartMandateClass extends BaseMandate<CartMandate> {
     }
   }
 
-  async sign(privateKey: string): Promise<void> {
+  /**
+   * Sign CartMandate using JWT for merchant_authorization
+   *
+   * @param privateKey - Private key in PKCS8 PEM format
+   * @param keyConfig - Optional JWT key configuration (defaults to RS256)
+   * @param merchantInfo - Merchant information for JWT payload
+   */
+  async sign(
+    privateKey: string,
+    keyConfig?: Partial<JWTKeyConfig>,
+    merchantInfo?: {
+      merchantId: string;
+      audience?: string;
+      expiresIn?: number;
+    }
+  ): Promise<void> {
     try {
-      const signedData = await signMandate(this._data, privateKey);
+      // Default key configuration
+      const defaultKeyConfig: JWTKeyConfig = {
+        privateKey,
+        publicKey: '', // Not needed for signing
+        algorithm: 'RS256' as JWTAlgorithm,
+        keyId: keyConfig?.keyId
+      };
 
-      if ('merchant_authorization' in signedData) {
-        this._signature = signedData.merchant_authorization;
-        this._status = 'authorized';
-      }
+      // Compute cart hash for integrity
+      const cartHash = await jwtService.computeCartHash(this._data.contents);
+
+      // Build JWT payload
+      const payload = {
+        iss: merchantInfo?.merchantId || 'default-merchant',
+        sub: merchantInfo?.merchantId || 'default-merchant',
+        aud: merchantInfo?.audience || 'payment-processor',
+        cart_hash: cartHash
+      };
+
+      // Sign JWT
+      const jwt = await jwtService.signMerchantAuthorization(payload, {
+        keyConfig: { ...defaultKeyConfig, ...keyConfig },
+        expiresIn: merchantInfo?.expiresIn || 900 // 15 minutes default
+      });
+
+      this._merchantAuthorization = jwt;
+      this._signature = jwt; // Keep backward compatibility
+      this._status = 'authorized';
+
+      // Update data with merchant_authorization
+      (this._data as any).merchant_authorization = jwt;
     } catch (error) {
       this._status = 'failed';
-      throw error;
+      throw new Error(`Failed to sign CartMandate: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
-  async verify(publicKey: string): Promise<boolean> {
-    if (!this._signature) {
+  /**
+   * Verify CartMandate JWT signature and integrity
+   *
+   * @param publicKey - Public key in SPKI PEM format
+   * @param keyConfig - Optional JWT key configuration
+   * @param expectedMerchantId - Expected merchant ID for validation
+   * @param expectedAudience - Expected audience for validation
+   */
+  async verify(
+    publicKey: string,
+    keyConfig?: Partial<JWTKeyConfig>,
+    expectedMerchantId?: string,
+    expectedAudience?: string
+  ): Promise<boolean> {
+    if (!this._merchantAuthorization && !this._signature) {
       return false;
     }
 
     try {
-      const mandateWithSignature = { ...this._data, merchant_authorization: this._signature };
-      const result = await verifyMandateSignature(mandateWithSignature, publicKey);
-      return result.isValid;
+      const jwt = this._merchantAuthorization || this._signature;
+      if (!jwt) return false;
+
+      // Default key configuration
+      const defaultKeyConfig: JWTKeyConfig = {
+        privateKey: '', // Not needed for verification
+        publicKey,
+        algorithm: 'RS256' as JWTAlgorithm,
+        keyId: keyConfig?.keyId
+      };
+
+      // Verify JWT
+      const verificationResult = await jwtService.verifyMerchantAuthorization(jwt, {
+        keyConfig: { ...defaultKeyConfig, ...keyConfig },
+        audience: expectedAudience,
+        issuer: expectedMerchantId,
+        verifyExp: true
+      });
+
+      if (!verificationResult.valid || !verificationResult.payload) {
+        return false;
+      }
+
+      // Verify cart hash integrity
+      const expectedCartHash = await jwtService.computeCartHash(this._data.contents);
+      const actualCartHash = verificationResult.payload.cart_hash;
+
+      return expectedCartHash === actualCartHash;
     } catch (error) {
       return false;
     }
+  }
+
+  /**
+   * Get merchant authorization JWT token
+   */
+  getMerchantAuthorization(): string | undefined {
+    return this._merchantAuthorization;
+  }
+
+  /**
+   * Check if mandate is signed (overrides base class for JWT support)
+   */
+  override isSigned(): boolean {
+    return !!this._signature || !!this._merchantAuthorization;
   }
 
   toString(): string {
@@ -407,10 +504,14 @@ export class CartMandateClass extends BaseMandate<CartMandate> {
   static async fromSigned(
     signedMandate: CartMandate & { merchant_authorization?: string },
     publicKey?: string,
-    validateSignature = true
+    validateSignature = true,
+    keyConfig?: Partial<JWTKeyConfig>,
+    expectedMerchantId?: string,
+    expectedAudience?: string
   ): Promise<CartMandateClass> {
     const mandate = new CartMandateClass(signedMandate, {
-      signature: signedMandate.merchant_authorization
+      signature: signedMandate.merchant_authorization,
+      merchantAuthorization: signedMandate.merchant_authorization
     });
 
     // Validate the data
@@ -418,9 +519,9 @@ export class CartMandateClass extends BaseMandate<CartMandate> {
 
     // Verify signature if required
     if (publicKey && validateSignature) {
-      const isValid = await mandate.verify(publicKey);
+      const isValid = await mandate.verify(publicKey, keyConfig, expectedMerchantId, expectedAudience);
       if (!isValid) {
-        throw new MandateValidationError("Invalid signature");
+        throw new MandateValidationError("Invalid JWT signature or cart hash mismatch");
       }
     }
 

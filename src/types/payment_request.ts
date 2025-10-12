@@ -181,6 +181,11 @@ export interface PaymentDetailsModifier {
  *
  * This represents a complete payment request as defined by the W3C Payment Request API
  * and extended by the AP2 specification.
+ *
+ * W3C Compliance Notes:
+ * - Follows W3C Payment Request API specification structure
+ * - Extended with AP2-specific fields like shipping_address
+ * - Compatible with PaymentRequest constructor parameters
  */
 export interface PaymentRequest {
   /** The unique ID for this payment request */
@@ -223,6 +228,11 @@ export interface PaymentRequest {
  *
  * This represents the response from a completed payment request, containing
  * the user's payment choice and any collected information.
+ *
+ * W3C Compliance Notes:
+ * - Follows W3C PaymentResponse interface specification
+ * - Compatible with browser PaymentResponse objects
+ * - All fields align with standard Payment Request API
  */
 export interface PaymentResponse {
   /**

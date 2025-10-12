@@ -75,17 +75,22 @@ export async function createIntentMandate(
 }
 
 /**
- * Creates a new CartMandate from cart contents with validation and optional signing
+ * Creates a new CartMandate from cart contents with validation and optional JWT signing
  *
  * @param contentsParams - Parameters for creating cart contents
  * @param mandateParams - Additional mandate parameters (like merchant_authorization)
- * @param privateKey - Optional private key to sign the mandate immediately
+ * @param signingOptions - Optional JWT signing configuration
  * @returns Promise resolving to a new CartMandateClass instance
  */
 export async function createCartMandate(
   contentsParams: CreateCartContentsParams,
   mandateParams: Omit<CreateCartMandateParams, 'contents'> = {},
-  privateKey?: string
+  signingOptions?: {
+    privateKey: string;
+    algorithm?: 'RS256' | 'ES256';
+    merchantId?: string;
+    audience?: string;
+  }
 ): Promise<CartMandateClass> {
   // Create cart contents
   const cartContents: CartContents = {
@@ -102,8 +107,22 @@ export async function createCartMandate(
     merchant_authorization: mandateParams.merchant_authorization,
   };
 
-  // Create and return class instance
-  return await CartMandateClass.createNew(cartMandateData, privateKey);
+  // Create class instance
+  const mandate = await CartMandateClass.createNew(cartMandateData);
+
+  // Sign with JWT if signing options provided
+  if (signingOptions) {
+    await mandate.sign(
+      signingOptions.privateKey,
+      { algorithm: signingOptions.algorithm || 'RS256' },
+      {
+        merchantId: signingOptions.merchantId || 'default-merchant',
+        audience: signingOptions.audience
+      }
+    );
+  }
+
+  return mandate;
 }
 
 /**

@@ -2,16 +2,16 @@
 
 ## OBJETIVO ESTRATÉGICO
 
-Implementar la infraestructura base para el **Agent Payments Protocol (AP2)**, el protocolo abierto y universal respaldado por Google y más de 60 organizaciones, con el fin de capitalizar la oportunidad de mercado en la creación de **SDKs y APIs** y **Plataformas de Gestión** para agentes de IA.
+Implementar la infraestructura base para el **Agent Payments Protocol (AP2)**, el protocolo abierto y universal respaldado por Google y más de 60 organizaciones, con el fin de construir las mejores **SDKs y APIs** y **Plataformas de Gestión** para el comercio autónomo.
 
 ## STACK TECNOLÓGICO CENTRAL
 
 *   **Lenguaje:** TypeScript (TS)
 *   **Runtime:** Deno (Elegido por el tipado integrado y la reutilización de código entre *backend* y *frontend*)
+*   **Base de Datos:** PostgreSQL
+*   **Principios de Diseño:** **SOLID** (Se requiere el estricto cumplimiento de los principios SOLID para garantizar la mantenibilidad y escalabilidad del código).
 
 ## ALCANCE DEL MVP: Módulos y Servicios Clave
-
-El MVP se divide en tres componentes interdependientes que deben construirse y probarse para garantizar la seguridad y la trazabilidad, pilares de AP2.
 
 ---
 
@@ -21,51 +21,50 @@ Este es el módulo central de TypeScript/Deno que encapsulará toda la lógica d
 
 | Requisito | Detalle e Implementación | Justificación AP2 / Seguridad |
 | :--- | :--- | :--- |
-| **Tipado Fuerte (Strong Typing)** | (Mantener la definición original, enfocada en la tipificación de `Intent Mandate` y `Cart Mandate`). | (Mantener la justificación original). |
-| **Generación de Mandatos** | (Mantener la definición original). | (Mantener la justificación original). |
-| **Firma Criptográfica (JWT/JWS)** | Funciones para generar y firmar digitalmente el objeto **`merchant_authorization`** como un **JSON Web Token (JWT)** [Conversación Histórica]. La firma debe utilizar **algoritmos asimétricos** (ej. **RS256**) [Conversación Histórica] con la **clave privada del *merchant***. | Esencial para garantizar la **autenticidad e integridad** de los contenidos del carrito. Mitiga el **T1 Spoofing** y el **T2 Tampering** [Conversación Histórica]. |
-| **Validación de Mandatos** | Funciones que implementen la lógica de **verificación del JWT**, incluyendo: 1. **Verificación de la firma digital** (usando la clave pública del *merchant*). 2. Validación de la **expiración de corta duración** (`exp`, 5-15 minutos) [Conversación Histórica]. 3. Comprobación del **identificador único (`jti`)** para **prevenir ataques de *replay*** (repetición) [Conversación Histórica]. 4. Recálculo y verificación del **`cart_hash`** (un *hash* seguro del `CartMandate`) [Conversación Histórica]. | Los Mandatos son la **prueba verificable e inalterable** de las intenciones del usuario, y estas validaciones son críticas para la seguridad financiera [Conversación Histórica]. |
-| **Pruebas Unitarias** | (Mantener la definición original: 100% testeado). | (Mantener la justificación original). |
+| **Tipado Fuerte (Strong Typing)** | Definir **interfaces TypeScript** para los objetos centrales del protocolo AP2, incluyendo `Intent Mandate`, `Cart Mandate`, y estructuras como `contact_picker` [Conversación Histórica]. | Esencial para la **seguridad de los datos** y la coherencia con el estándar. |
+| **Generación de Mandatos** | Funciones que permitan la **creación** de `Intent Mandate` y `Cart Mandate` en formato serializable (JSON). | Los Mandatos son la **prueba verificable e inalterable** de las intenciones del usuario. |
+| **Firma Criptográfica (JWT/JWS)** | Funciones para generar y firmar digitalmente el objeto **`merchant_authorization`** como un **JSON Web Token (JWT)** [Conversación Histórica]. La firma debe utilizar **algoritmos asimétricos** (ej. **RS256**) con la **clave privada del *merchant***. | Implementa la **autenticidad e integridad** de los contenidos del carrito, mitigando **T1 Spoofing** y **T2 Tampering** [Conversación Histórica]. |
+| **Validación de Mandatos** | Funciones que implementen la lógica de **verificación del JWT**, incluyendo: 1. **Verificación de la firma digital**. 2. Validación de la **expiración** (`exp`). 3. Comprobación del **identificador único (`jti`)** para **prevenir ataques de *replay***. 4. Recálculo y verificación del **`cart_hash`** [Conversación Histórica]. | Estas validaciones son críticas para la seguridad financiera y la trazabilidad. |
+| **Compatibilidad Universal (Web-Friendly)** | El módulo debe ser construido exclusivamente utilizando **API estándar de JavaScript y Deno/Web API** (por ejemplo, Web Crypto API). Se **prohíbe estrictamente el uso de cualquier librería o API específica de Node.js**. | Garantiza la **reutilización del código** en el Servidor REST y el **Dashboard de Gestión** [Conversación Histórica], creando **SDKs universales**. |
+| **Principios SOLID** | El diseño interno del módulo debe adherirse a los principios SOLID para garantizar la **mantenibilidad, extensibilidad y cohesión**. | Fundamental para la escalabilidad de la infraestructura. |
+| **Cobertura de Pruebas** | El módulo debe alcanzar un nivel de cobertura de pruebas **del 100%** para toda la lógica de seguridad y criptografía [Conversación Histórica]. Se debe usar **Deno testing tools** y realizar pruebas exhaustivas de las utilidades de firma y validación. | Este alto nivel es mandatorio para garantizar la fiabilidad del protocolo AP2, que soporta pagos y requiere alineación con **Compliance y Regulación**. |
 
 ---
 
 ### 2. MCP Servidor (API Gateway para Agentes)
 
-Este es el **Servidor REST** desarrollado en TypeScript/Deno, que utiliza `ap2-lib` y actúa como la **puerta de entrada** *headless* para los agentes de IA que desean realizar transacciones.
+Este es el **Servidor REST** (*headless*) desarrollado en TypeScript/Deno que utiliza `ap2-lib` e implementa la **Lógica Interna de AP2**.
 
 | Requisito | Detalle e Implementación Requerida | Lógica Interna del Servidor |
 | :--- | :--- | :--- |
-| **Base de Datos** | **PostgreSQL** para el almacenamiento de Mandatos firmados, registros de auditoría (`audit.log`) y datos de usuario/comerciante. | Requiere un esquema de base de datos que priorice la **trazabilidad** y la **inmutabilidad** de los registros de Mandatos. |
-| **Autenticación** | Gestión de usuarios y autenticación segura mediante **API Keys** (Claves API) para los desarrolladores de agentes. | Soporta el modelo de monetización de APIs. |
-| **Endpoint: Creación/Firma** | API para que los agentes soliciten la creación y firma de un Mandato, delegando la lógica de seguridad a `ap2-lib`. | Permite la generación de **Cart Mandates** para transacciones. |
-| **Endpoint: Validación** | Endpoint dedicado (`/verify_mandate`) para que cualquier parte verifique criptográficamente la integridad de un Mandato. | Fundamental para la mitigación del riesgo en tiempo real. |
-| **Endpoint: Auditoría** | Endpoint (`/log_dispute`) para registrar transacciones y gestionar el registro de disputas. | Implementa la mitigación de **T6 Repudiation** (No Repudiación). |
-| **Endpoint: Límite de Gasto** | Endpoint (`/check_rate_limit`) para verificar y aplicar límites de gasto configurados por el *merchant* al agente antes de autorizar el pago. | Mitiga el riesgo de **T4 DoS** (Denegación de Servicio) y transacciones excesivas. |
+| **Base de Datos** | PostgreSQL para el almacenamiento de Mandatos firmados, el registro de auditoría (`audit.log`) y datos de usuario/comerciante. | El almacenamiento debe priorizar la **inmutabilidad** para el manejo de disputas. |
+| **Autenticación** | Gestión de usuarios y autenticación segura mediante **API Keys** (Claves API). | Soporte para modelos de monetización API. |
+| **Endpoint: Creación/Firma** | API para que los agentes soliciten la creación y firma de Mandatos, delegando la seguridad a `ap2-lib`. | Permite la generación de **Cart Mandates** para transacciones. |
+| **Endpoint: Validación** | Endpoint dedicado (`/verify_mandate`) para verificar criptográficamente la integridad de un Mandato. | Fundamental para la mitigación del riesgo en tiempo real [Conversación Histórica]. |
+| **Endpoint: Auditoría** | Endpoint (`/log_dispute`) para registrar transacciones y gestionar el registro de disputas. | Implementa la mitigación de **T6 Repudiation** (No Repudiación) y cumple con la necesidad de rastros de auditoría. |
+| **Endpoint: Límite de Gasto** | Endpoint (`/check_rate_limit`) para verificar y aplicar límites de gasto configurados por el *merchant* al agente. | Mitiga las amenazas de **Denegación de Servicio (T4 DoS)**. |
+| **Principios SOLID** | La arquitectura del servidor (manejo de rutas, lógica de base de datos y *business logic*) debe seguir los principios SOLID, especialmente la **Separación de Interfaces (ISP)** y la **Inversión de Dependencias (DIP)**. | Garantiza un diseño modular y la capacidad de manejar altos volúmenes y baja latencia. |
 
 ---
 
 ### 3. Documentación OpenAPI y Dashboard de Gestión
 
-Estos componentes son la salida directa del MVP, enfocados en la adopción por parte de desarrolladores (OpenAPI) y la interfaz humana (Dashboard).
-
 #### 3.1 Documentación OpenAPI (Para Agentes/Desarrolladores)
 
 *   **Generación Automática:** Se requiere la generación de una especificación **OpenAPI (Swagger)** completa a partir del Servidor REST (MCP Servidor).
-*   **Propósito:** Esta documentación será la base para que los agentes puedan generar automáticamente clientes (SDKs/Bibliotecas) y para que otros desarrolladores implementen la interacción con nuestro servicio.
-*   **Monetización:** La calidad de las APIs y SDKs es la principal oportunidad para monetizar el servicio, típicamente mediante modelos **freemium**.
+*   **Propósito:** Servirá como la base para que los agentes puedan generar automáticamente clientes (SDKs/Bibliotecas) y para que otros desarrolladores se integren.
 
-#### 3.2 Dashboard de Gestión para Merchants (MCP Humano)
+#### 3.2 Dashboard de Gestión para Merchants (Plataforma de Gestión)
 
-*   **Interfaz de Usuario:** Un *frontend* construido con TypeScript/Deno (o similar) que se comunica con el MCP Servidor.
-*   **Funcionalidades Esenciales (Plataforma de Gestión):**
-    *   **Monitoreo de Agentes:** Visualización en tiempo real del tráfico de Mandatos y transacciones.
-    *   **Configuración de Límites:** Interfaz para que los *merchants* puedan **configurar límites de gasto** por agente o por tipo de transacción.
-    *   **Auditoría Completa:** Acceso al **Sistema de facturación y analytics** que muestre el `audit.log`, permitiendo la revisión de los Mandatos firmados (prueba inalterable) para la gestión de disputas.
+*   **Interfaz de Usuario:** Un *frontend* que se comunica con el MCP Servidor, utilizando TypeScript/Deno para la reutilización del código.
+*   **Funcionalidades Esenciales:**
+    *   **Monitoreo y Auditoría:** Interfaz para que los *merchants* puedan **monitorear agentes** y acceder al **Sistema de facturación y analytics** que muestre el registro de auditoría.
+    *   **Configuración de Límites:** Capacidad de **configurar límites de gasto** por agente o por tipo de transacción.
 
 ---
 
 ### CONSIDERACIONES CRÍTICAS (No Funcionales)
 
-*   **Compliance y Regulación:** Aunque AP2 mejora la trazabilidad, la infraestructura debe estar diseñada para alinearse con regulaciones financieras como **PCI-DSS** y el monitoreo de crímenes financieros para asegurar la adopción en industrias reguladas.
-*   **Escalabilidad:** Dado que el futuro del comercio autónomo podría valer trillones, el diseño de la infraestructura debe ser escalable para manejar **volúmenes altos** y mantener una **latencia baja** para transacciones en tiempo real.
-*   **Reutilización del Código:** Maximizar la reutilización del código Deno/TypeScript entre `ap2-lib`, el MCP Servidor y el Dashboard.
+1.  **Compliance y Regulación:** El diseño debe alinearse con la necesidad de **PCI-DSS**, leyes de residencia de datos y monitoreo de crímenes financieros.
+2.  **Escalabilidad:** La infraestructura debe ser capaz de manejar **volúmenes altos** mientras mantiene **latencia baja** para transacciones en tiempo real.
+3.  **Monetización:** La API debe diseñarse para ser monetizable, utilizando modelos **freemium** que permitan altas tasas de conversión.

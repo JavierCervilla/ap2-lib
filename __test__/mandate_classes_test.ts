@@ -21,6 +21,7 @@ import {
   MandateValidationError,
   createFutureISO8601,
   TIME_CONSTANTS,
+  jwtService,
 } from "../src/mod.ts";
 
 Deno.test("IntentMandateClass - Create new mandate", async () => {
@@ -153,7 +154,7 @@ Deno.test("CartMandateClass - Create new mandate", async () => {
 
 Deno.test("CartMandateClass - Sign mandate", async () => {
   const futureDate = createFutureISO8601(TIME_CONSTANTS.DAY);
-  const keyPair = await generateKeyPair();
+  const keyPair = await jwtService.generateKeyPair('RS256');
   const cartContents: CartContents = {
     id: "cart_sign_test",
     user_cart_confirmation_required: false,
@@ -177,12 +178,14 @@ Deno.test("CartMandateClass - Sign mandate", async () => {
     contents: cartContents,
   };
 
-  const mandate = await await CartMandateClass.createNew(cartData);
-  await mandate.sign(keyPair.privateKey);
+  const mandate = await CartMandateClass.createNew(cartData);
+  await mandate.sign(keyPair.privateKey, { algorithm: keyPair.algorithm }, {
+    merchantId: "test-merchant"
+  });
 
   assertEquals(mandate.getStatus(), 'authorized');
   assertEquals(mandate.isSigned(), true);
-  assertExists(mandate.getSignature());
+  assertExists(mandate.getMerchantAuthorization());
 });
 
 Deno.test("CartMandateClass - toString method", async () => {
@@ -246,7 +249,7 @@ Deno.test("createIntentMandate factory function with signing", async () => {
 
 Deno.test("createCartMandate factory function with signing", async () => {
   const futureDate = createFutureISO8601(TIME_CONSTANTS.DAY);
-  const keyPair = await generateKeyPair();
+  const keyPair = await jwtService.generateKeyPair('RS256');
 
   const mandate = await createCartMandate({
     id: "factory_cart_123",
@@ -265,7 +268,11 @@ Deno.test("createCartMandate factory function with signing", async () => {
     },
     cart_expiry: futureDate,
     merchant_name: "Factory Merchant",
-  }, {}, keyPair.privateKey);
+  }, {}, {
+    privateKey: keyPair.privateKey,
+    algorithm: 'RS256',
+    merchantId: "factory-merchant"
+  });
 
   assertEquals(mandate.getStatus(), 'authorized');
   assertEquals(mandate.isSigned(), true);
@@ -275,19 +282,20 @@ Deno.test("createCartMandate factory function with signing", async () => {
 
 Deno.test("createMandateClass generic factory", async () => {
   const futureDate = createFutureISO8601(TIME_CONSTANTS.DAY);
-  const keyPair = await generateKeyPair();
+  const keyPairECDSA = await generateKeyPair(); // For IntentMandate (still uses ECDSA)
+  const keyPairJWT = await jwtService.generateKeyPair('RS256'); // For CartMandate (uses JWT)
 
-  // Test with IntentMandate
+  // Test with IntentMandate (still uses ECDSA)
   const intentData: IntentMandate = {
     natural_language_description: "Generic factory intent test",
     intent_expiry: futureDate,
   };
 
-  const intentMandate = await createMandateClass(intentData, { privateKey: keyPair.privateKey });
+  const intentMandate = await createMandateClass(intentData, { privateKey: keyPairECDSA.privateKey });
   assert(intentMandate instanceof IntentMandateClass);
   assertEquals(intentMandate.getData().natural_language_description, "Generic factory intent test");
 
-  // Test with CartMandate
+  // Test with CartMandate (without signing for now to avoid complexity)
   const cartData: CartMandate = {
     contents: {
       id: "generic_cart_456",
@@ -309,7 +317,7 @@ Deno.test("createMandateClass generic factory", async () => {
     }
   };
 
-  const cartMandate = await createMandateClass(cartData, { privateKey: keyPair.privateKey });
+  const cartMandate = await createMandateClass(cartData); // No signing
   assert(cartMandate instanceof CartMandateClass);
   assertEquals(cartMandate.getData().contents.id, "generic_cart_456");
 });

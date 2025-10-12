@@ -7,6 +7,7 @@
  */
 
 import type { IntentMandate, CartContents, CartMandate, PaymentRequest, Mandate } from "../types/mod.ts";
+import type { PaymentMandate, PaymentMandateContents } from "../types/payment-mandate.ts";
 import { isExpired } from "../utils/mod.ts";
 
 // Import strategy components
@@ -16,6 +17,8 @@ import { IntentMandateValidator } from "./validation/intent-mandate-validator.ts
 import { CartContentsValidator } from "./validation/cart-contents-validator.ts";
 import { CartMandateValidator } from "./validation/cart-mandate-validator.ts";
 import { PaymentRequestValidator } from "./validation/payment-request-validator.ts";
+import { PaymentMandateValidator } from "./validation/payment-mandate-validator.ts";
+import { PaymentMandateContentsValidator } from "./validation/payment-mandate-contents-validator.ts";
 import { DEFAULT_VALIDATION_CONFIG } from "./config/validation-config.ts";
 
 // Export the ValidationResult type for backward compatibility
@@ -26,6 +29,8 @@ const intentMandateValidator = new IntentMandateValidator(DEFAULT_VALIDATION_CON
 const cartContentsValidator = new CartContentsValidator(DEFAULT_VALIDATION_CONFIG);
 const cartMandateValidator = new CartMandateValidator(DEFAULT_VALIDATION_CONFIG);
 const paymentRequestValidator = new PaymentRequestValidator(DEFAULT_VALIDATION_CONFIG);
+const paymentMandateValidator = new PaymentMandateValidator(DEFAULT_VALIDATION_CONFIG);
+const paymentMandateContentsValidator = new PaymentMandateContentsValidator(DEFAULT_VALIDATION_CONFIG);
 
 /**
  * Validates an IntentMandate structure and content
@@ -123,4 +128,48 @@ export async function validateMandateIntegrity(mandate: Mandate): Promise<Valida
  */
 export async function validateCartContentsIntegrity(cartContents: CartContents): Promise<ValidationResult> {
   return await cartContentsValidator.validateIntegrity(cartContents);
+}
+
+/**
+ * Validates a PaymentMandate structure and content
+ *
+ * @param paymentMandate - Payment mandate to validate
+ * @returns Promise resolving to validation result
+ */
+export async function validatePaymentMandate(paymentMandate: PaymentMandate): Promise<ValidationResult> {
+  return await paymentMandateValidator.validate(paymentMandate);
+}
+
+/**
+ * Validates PaymentMandateContents structure and content
+ *
+ * @param contents - Payment mandate contents to validate
+ * @returns Promise resolving to validation result
+ */
+export async function validatePaymentMandateContents(contents: PaymentMandateContents): Promise<ValidationResult> {
+  return await paymentMandateContentsValidator.validate(contents);
+}
+
+/**
+ * Validates the integrity of PaymentMandate by checking required fields
+ *
+ * @param paymentMandate - Payment mandate to validate integrity
+ * @returns Promise resolving to validation result
+ */
+export async function validatePaymentMandateIntegrity(paymentMandate: PaymentMandate): Promise<ValidationResult> {
+  return await paymentMandateValidator.validateIntegrity(paymentMandate);
+}
+
+/**
+ * Checks if PaymentMandate has expired
+ *
+ * @param paymentMandate - Payment mandate to check
+ * @param currentDate - Current date (defaults to now)
+ * @returns Promise resolving to true if expired
+ */
+export async function checkPaymentMandateExpiry(
+  paymentMandate: PaymentMandate,
+  currentDate = new Date()
+): Promise<boolean> {
+  return await paymentMandateValidator.checkExpiry(paymentMandate, currentDate);
 }
