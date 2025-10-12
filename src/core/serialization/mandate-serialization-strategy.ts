@@ -143,6 +143,20 @@ export class MandateSerializationStrategyRegistry {
 
     return await strategy.deserialize(json);
   }
+
+  /**
+   * Static method to serialize a mandate using the default registry
+   */
+  static async serialize(mandate: Mandate): Promise<string> {
+    return await defaultMandateSerializationRegistry.serializeMandate(mandate);
+  }
+
+  /**
+   * Static method to deserialize a mandate using the default registry
+   */
+  static async deserialize(json: string): Promise<Mandate> {
+    return await defaultMandateSerializationRegistry.deserializeMandate(json);
+  }
 }
 
 /**

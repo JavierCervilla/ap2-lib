@@ -33,4 +33,18 @@ export class PaymentRequestSerializer extends BaseJsonSerializer<PaymentRequest>
   static create(): PaymentRequestSerializer {
     return new PaymentRequestSerializer();
   }
+
+  /**
+   * Static method to serialize PaymentRequest
+   */
+  static async serialize(paymentRequest: PaymentRequest): Promise<string> {
+    return await PaymentRequestSerializer.create().serialize(paymentRequest);
+  }
+
+  /**
+   * Static method to deserialize PaymentRequest
+   */
+  static async deserialize(json: string): Promise<PaymentRequest> {
+    return await PaymentRequestSerializer.create().deserialize(json);
+  }
 }

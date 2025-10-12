@@ -32,4 +32,18 @@ export class CartMandateSerializer extends BaseJsonSerializer<CartMandate> {
   static create(): CartMandateSerializer {
     return new CartMandateSerializer();
   }
+
+  /**
+   * Static method to serialize CartMandate
+   */
+  static async serialize(cartMandate: CartMandate): Promise<string> {
+    return await CartMandateSerializer.create().serialize(cartMandate);
+  }
+
+  /**
+   * Static method to deserialize CartMandate
+   */
+  static async deserialize(json: string): Promise<CartMandate> {
+    return await CartMandateSerializer.create().deserialize(json);
+  }
 }

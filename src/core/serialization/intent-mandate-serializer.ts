@@ -38,4 +38,18 @@ export class IntentMandateSerializer extends BaseJsonSerializer<IntentMandate> {
   static create(): IntentMandateSerializer {
     return new IntentMandateSerializer();
   }
+
+  /**
+   * Static method to serialize IntentMandate
+   */
+  static async serialize(mandate: IntentMandate): Promise<string> {
+    return await IntentMandateSerializer.create().serialize(mandate);
+  }
+
+  /**
+   * Static method to deserialize IntentMandate
+   */
+  static async deserialize(json: string): Promise<IntentMandate> {
+    return await IntentMandateSerializer.create().deserialize(json);
+  }
 }
