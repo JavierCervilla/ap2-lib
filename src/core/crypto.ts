@@ -10,6 +10,7 @@ import {
   CryptographicError,
   SignatureVerificationError,
 } from "../utils/mod.ts";
+import { DERSignatureUtils } from "./utils/der-signature.ts";
 
 /**
  * ECDSA Key pair for signing and verification
@@ -123,9 +124,15 @@ export async function signData(data: string, privateKeyHex: string): Promise<ECD
       dataBuffer
     );
 
-    // Parse DER-encoded signature to extract r, s components
+    // Parse signature to extract r, s components
+    // Web Crypto API returns signatures in P1363 format (r||s concatenated), not DER format
     const signature = new Uint8Array(signatureBuffer);
-    const { r, s } = parseDERSignature(signature);
+    const halfLength = signature.length / 2;
+    const rBytes = signature.slice(0, halfLength);
+    const sBytes = signature.slice(halfLength);
+
+    const r = DERSignatureUtils.uint8ArrayToHex(rBytes);
+    const s = DERSignatureUtils.uint8ArrayToHex(sBytes);
 
     return {
       r: r,
@@ -181,8 +188,12 @@ export async function verifySignature(
       ["verify"]
     );
 
-    // Reconstruct DER signature from r, s components
-    const derSignature = createDERSignature(signature.r, signature.s);
+    // Reconstruct P1363 signature (r||s) from components for Web Crypto API
+    const rBytes = DERSignatureUtils.hexToUint8Array(signature.r);
+    const sBytes = DERSignatureUtils.hexToUint8Array(signature.s);
+    const p1363Signature = new Uint8Array(rBytes.length + sBytes.length);
+    p1363Signature.set(rBytes, 0);
+    p1363Signature.set(sBytes, rBytes.length);
 
     // Encode data as UTF-8
     const dataBuffer = new TextEncoder().encode(data);
@@ -194,7 +205,7 @@ export async function verifySignature(
         hash: "SHA-256",
       },
       publicKey,
-      derSignature,
+      p1363Signature,
       dataBuffer
     );
 
@@ -294,33 +305,3 @@ export async function verifyMandateSignature(
   return await verifySignature(mandateData, signature, publicKeyHex);
 }
 
-/**
- * Parses DER-encoded signature to extract r, s components
- * This is a simplified parser for the ECDSA signature format
- */
-function parseDERSignature(signature: Uint8Array): { r: string; s: string } {
-  // This is a simplified implementation
-  // In production, you'd use a proper DER parser
-  const hex = Array.from(signature).map(b => b.toString(16).padStart(2, '0')).join('');
-
-  // For this implementation, we'll split the signature in half
-  // This is not the correct DER parsing but works for our tests
-  const midpoint = Math.floor(hex.length / 2);
-  const r = hex.slice(0, midpoint);
-  const s = hex.slice(midpoint);
-
-  return { r, s };
-}
-
-/**
- * Creates DER signature from r, s components
- * This is a simplified implementation
- */
-function createDERSignature(r: string, s: string): Uint8Array {
-  // TODO:
-  // FIXME: Proper DER encoding
-  // This is a simplified implementation
-  // In production, you'd create proper DER encoding
-  const combined = r + s;
-  return new Uint8Array(combined.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16)));
-}

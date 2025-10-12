@@ -5,8 +5,8 @@
   "license": "MIT",
   "tasks": {
     "dev": "deno run --watch src/main.ts",
-    "test": "deno test --allow-net --allow-read --coverage=cov_profile",
-    "coverage": "deno coverage cov_profile",
+    "test": "deno test --allow-net --allow-read --coverage=coverage",
+    "coverage": "deno coverage coverage",
     "build": "deno run -A ./scripts/build.ts",
     "npm": "deno task build && cd npm && npm publish --access public",
     "jsr": "deno publish --no-check --allow-slow-types",
@@ -15,6 +15,7 @@
   "exports": "./src/mod.ts",
   "imports": {
     "@std/assert": "jsr:@std/assert@1",
+    "bip66": "npm:bip66@^2.0.0",
     "currency-codes": "npm:currency-codes@^2.2.0"
   }
 }

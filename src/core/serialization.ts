@@ -1,12 +1,26 @@
 /**
- * Serialization Functions for AP2
+ * Serialization Functions for AP2 - Refactored
  *
  * Functions for serializing and deserializing mandates, payment requests,
  * and related structures to/from JSON format.
- * Implementation follows TDD - these functions pass the pre-written tests.
+ * Refactored to use strategy pattern and follow SOLID principles while maintaining
+ * backward compatibility with the existing API.
  */
 
 import type { IntentMandate, CartContents, CartMandate, PaymentRequest, Mandate } from "../types/mod.ts";
+
+// Import strategy components
+import { defaultMandateSerializationRegistry } from "./serialization/mandate-serialization-strategy.ts";
+import { IntentMandateSerializer } from "./serialization/intent-mandate-serializer.ts";
+import { CartContentsSerializer } from "./serialization/cart-contents-serializer.ts";
+import { CartMandateSerializer } from "./serialization/cart-mandate-serializer.ts";
+import { PaymentRequestSerializer } from "./serialization/payment-request-serializer.ts";
+
+// Create serializer instances
+const intentMandateSerializer = IntentMandateSerializer.create();
+const cartContentsSerializer = CartContentsSerializer.create();
+const cartMandateSerializer = CartMandateSerializer.create();
+const paymentRequestSerializer = PaymentRequestSerializer.create();
 
 /**
  * Serializes an IntentMandate to JSON string
@@ -15,7 +29,7 @@ import type { IntentMandate, CartContents, CartMandate, PaymentRequest, Mandate 
  * @returns Promise resolving to JSON string
  */
 export async function serializeIntentMandate(intentMandate: IntentMandate): Promise<string> {
-  return JSON.stringify(intentMandate);
+  return await intentMandateSerializer.serialize(intentMandate);
 }
 
 /**
@@ -26,24 +40,7 @@ export async function serializeIntentMandate(intentMandate: IntentMandate): Prom
  * @throws Error if JSON is invalid or missing required fields
  */
 export async function deserializeIntentMandate(json: string): Promise<IntentMandate> {
-  let parsed: any;
-
-  try {
-    parsed = JSON.parse(json);
-  } catch {
-    throw new Error("Invalid JSON format");
-  }
-
-  // Validate required fields
-  if (!parsed.natural_language_description) {
-    throw new Error("Missing required field 'natural_language_description'");
-  }
-
-  if (!parsed.intent_expiry) {
-    throw new Error("Missing required field 'intent_expiry'");
-  }
-
-  return parsed as IntentMandate;
+  return await intentMandateSerializer.deserialize(json);
 }
 
 /**
@@ -53,7 +50,7 @@ export async function deserializeIntentMandate(json: string): Promise<IntentMand
  * @returns Promise resolving to JSON string
  */
 export async function serializeCartContents(cartContents: CartContents): Promise<string> {
-  return JSON.stringify(cartContents);
+  return await cartContentsSerializer.serialize(cartContents);
 }
 
 /**
@@ -64,36 +61,7 @@ export async function serializeCartContents(cartContents: CartContents): Promise
  * @throws Error if JSON is invalid or missing required fields
  */
 export async function deserializeCartContents(json: string): Promise<CartContents> {
-  let parsed: any;
-
-  try {
-    parsed = JSON.parse(json);
-  } catch {
-    throw new Error("Invalid JSON format");
-  }
-
-  // Validate required fields
-  if (!parsed.id) {
-    throw new Error("Missing required field 'id'");
-  }
-
-  if (!parsed.merchant_name) {
-    throw new Error("Missing required field 'merchant_name'");
-  }
-
-  if (!parsed.cart_expiry) {
-    throw new Error("Missing required field 'cart_expiry'");
-  }
-
-  if (!parsed.payment_request) {
-    throw new Error("Missing required field 'payment_request'");
-  }
-
-  if (parsed.user_cart_confirmation_required === undefined) {
-    throw new Error("Missing required field 'user_cart_confirmation_required'");
-  }
-
-  return parsed as CartContents;
+  return await cartContentsSerializer.deserialize(json);
 }
 
 /**
@@ -103,7 +71,7 @@ export async function deserializeCartContents(json: string): Promise<CartContent
  * @returns Promise resolving to JSON string
  */
 export async function serializeCartMandate(cartMandate: CartMandate): Promise<string> {
-  return JSON.stringify(cartMandate);
+  return await cartMandateSerializer.serialize(cartMandate);
 }
 
 /**
@@ -114,20 +82,7 @@ export async function serializeCartMandate(cartMandate: CartMandate): Promise<st
  * @throws Error if JSON is invalid or missing required fields
  */
 export async function deserializeCartMandate(json: string): Promise<CartMandate> {
-  let parsed: any;
-
-  try {
-    parsed = JSON.parse(json);
-  } catch {
-    throw new Error("Invalid JSON format");
-  }
-
-  // Validate required fields
-  if (!parsed.contents) {
-    throw new Error("Missing required field 'contents'");
-  }
-
-  return parsed as CartMandate;
+  return await cartMandateSerializer.deserialize(json);
 }
 
 /**
@@ -137,7 +92,7 @@ export async function deserializeCartMandate(json: string): Promise<CartMandate>
  * @returns Promise resolving to JSON string
  */
 export async function serializePaymentRequest(paymentRequest: PaymentRequest): Promise<string> {
-  return JSON.stringify(paymentRequest);
+  return await paymentRequestSerializer.serialize(paymentRequest);
 }
 
 /**
@@ -148,24 +103,7 @@ export async function serializePaymentRequest(paymentRequest: PaymentRequest): P
  * @throws Error if JSON is invalid or missing required fields
  */
 export async function deserializePaymentRequest(json: string): Promise<PaymentRequest> {
-  let parsed: any;
-
-  try {
-    parsed = JSON.parse(json);
-  } catch {
-    throw new Error("Invalid JSON format");
-  }
-
-  // Validate required fields
-  if (!parsed.methodData) {
-    throw new Error("Missing required field 'methodData'");
-  }
-
-  if (!parsed.details) {
-    throw new Error("Missing required field 'details'");
-  }
-
-  return parsed as PaymentRequest;
+  return await paymentRequestSerializer.deserialize(json);
 }
 
 /**
@@ -175,17 +113,7 @@ export async function deserializePaymentRequest(json: string): Promise<PaymentRe
  * @returns Promise resolving to JSON string
  */
 export async function serializeMandate(mandate: Mandate): Promise<string> {
-  // Check if it's an IntentMandate
-  if ('natural_language_description' in mandate) {
-    return await serializeIntentMandate(mandate as IntentMandate);
-  }
-
-  // Check if it's a CartMandate
-  if ('contents' in mandate) {
-    return await serializeCartMandate(mandate as CartMandate);
-  }
-
-  throw new Error("Unknown mandate type");
+  return await defaultMandateSerializationRegistry.serializeMandate(mandate);
 }
 
 /**
@@ -196,23 +124,5 @@ export async function serializeMandate(mandate: Mandate): Promise<string> {
  * @throws Error if JSON is invalid or represents unknown mandate type
  */
 export async function deserializeMandate(json: string): Promise<Mandate> {
-  let parsed: any;
-
-  try {
-    parsed = JSON.parse(json);
-  } catch {
-    throw new Error("Invalid JSON format");
-  }
-
-  // Check if it's an IntentMandate (has natural_language_description)
-  if ('natural_language_description' in parsed) {
-    return await deserializeIntentMandate(json);
-  }
-
-  // Check if it's a CartMandate (has contents)
-  if ('contents' in parsed) {
-    return await deserializeCartMandate(json);
-  }
-
-  throw new Error("Unknown mandate type - JSON does not represent a valid mandate");
+  return await defaultMandateSerializationRegistry.deserializeMandate(json);
 }
