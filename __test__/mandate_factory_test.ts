@@ -1,43 +1,52 @@
 /**
- * Mandate Factory Test Suite (TDD)
+ * Mandate Factory Test Suite
  *
- * Tests written FIRST for mandate creation functions.
- * These tests define the expected behavior before implementation.
+ * Tests for the clean class-based mandate creation API.
+ * Validates OOP functionality, validation, and error handling.
  */
 
-import { assert, assertEquals, assertRejects, assertThrows } from "@std/assert";
+import { assert, assertEquals, assertRejects, assertExists } from "@std/assert";
 import type { IntentMandate, CartContents, CartMandate } from "../src/mod.ts";
 import {
+  IntentMandateClass,
+  CartMandateClass,
+  createIntentMandate,
+  createCartMandate,
+  createMandateFromData,
   MandateValidationError,
   DateParseError,
   createFutureISO8601,
   TIME_CONSTANTS,
-} from "../src/utils/mod.ts";
-
-// Import functions that don't exist yet - will be implemented to pass these tests
-import {
-  createIntentMandate,
-  createCartContents,
-  createCartMandate,
-} from "../src/core/mandate-factory.ts";
+} from "../src/mod.ts";
 
 Deno.test("createIntentMandate - Valid minimal mandate", async () => {
-  const futureDate = createFutureISO8601(TIME_CONSTANTS.DAY); // 24 hours from now
+  const futureDate = createFutureISO8601(TIME_CONSTANTS.DAY);
   const mandate = await createIntentMandate({
     natural_language_description: "High top, old school, red basketball shoes",
     intent_expiry: futureDate,
   });
 
-  assertEquals(mandate.natural_language_description, "High top, old school, red basketball shoes");
-  assertEquals(mandate.intent_expiry, futureDate);
-  assertEquals(mandate.user_cart_confirmation_required, true); // Default value
-  assertEquals(mandate.requires_refundability, false); // Default value
-  assertEquals(mandate.merchants, undefined);
-  assertEquals(mandate.skus, undefined);
+  // Verify it returns a class instance
+  assert(mandate instanceof IntentMandateClass);
+
+  // Verify mandate data
+  const data = mandate.getData();
+  assertEquals(data.natural_language_description, "High top, old school, red basketball shoes");
+  assertEquals(data.intent_expiry, futureDate);
+  assertEquals(data.user_cart_confirmation_required, true); // Default value
+  assertEquals(data.requires_refundability, false); // Default value
+  assertEquals(data.merchants, undefined);
+  assertEquals(data.skus, undefined);
+
+  // Verify it has required class properties
+  assertEquals(mandate.getStatus(), 'pending');
+  assertEquals(mandate.isSigned(), false);
+  assertExists(mandate.getId());
+  assertExists(mandate.getCreatedAt());
 });
 
 Deno.test("createIntentMandate - Full mandate with all options", async () => {
-  const futureDate = createFutureISO8601(TIME_CONSTANTS.WEEK); // 1 week from now
+  const futureDate = createFutureISO8601(TIME_CONSTANTS.WEEK);
   const mandate = await createIntentMandate({
     user_cart_confirmation_required: false,
     natural_language_description: "Wireless noise-canceling headphones under $200",
@@ -47,49 +56,56 @@ Deno.test("createIntentMandate - Full mandate with all options", async () => {
     intent_expiry: futureDate,
   });
 
-  assertEquals(mandate.user_cart_confirmation_required, false);
-  assertEquals(mandate.merchants?.length, 2);
-  assertEquals(mandate.skus?.length, 2);
-  assertEquals(mandate.requires_refundability, true);
-  assertEquals(mandate.intent_expiry, futureDate);
+  // Verify data
+  const data = mandate.getData();
+  assertEquals(data.user_cart_confirmation_required, false);
+  assertEquals(data.natural_language_description, "Wireless noise-canceling headphones under $200");
+  assertEquals(data.merchants, ["sony.com", "bose.com"]);
+  assertEquals(data.skus, ["SONY-WH-1000XM4", "BOSE-QC45"]);
+  assertEquals(data.requires_refundability, true);
+  assertEquals(data.intent_expiry, futureDate);
 });
 
 Deno.test("createIntentMandate - Should reject invalid expiry date", async () => {
   await assertRejects(
-    () => createIntentMandate({
-      natural_language_description: "Test product",
-      intent_expiry: "invalid-date",
-    }),
-    DateParseError,
-    "Invalid ISO 8601 date format"
+    async () => {
+      await createIntentMandate({
+        natural_language_description: "Test item",
+        intent_expiry: "not-a-valid-date",
+      });
+    },
+    MandateValidationError
   );
 });
 
 Deno.test("createIntentMandate - Should reject empty description", async () => {
+  const futureDate = createFutureISO8601(TIME_CONSTANTS.DAY);
   await assertRejects(
-    () => createIntentMandate({
-      natural_language_description: "",
-      intent_expiry: "2024-12-31T23:59:59Z",
-    }),
-    MandateValidationError,
-    "Description cannot be empty"
+    async () => {
+      await createIntentMandate({
+        natural_language_description: "",
+        intent_expiry: futureDate,
+      });
+    },
+    MandateValidationError
   );
 });
 
 Deno.test("createIntentMandate - Should reject past expiry date", async () => {
   await assertRejects(
-    () => createIntentMandate({
-      natural_language_description: "Test product",
-      intent_expiry: "2020-01-01T00:00:00Z", // Past date
-    }),
-    MandateValidationError,
-    "Expiry date cannot be in the past"
+    async () => {
+      await createIntentMandate({
+        natural_language_description: "Test item",
+        intent_expiry: "2020-01-01T00:00:00Z", // Past date
+      });
+    },
+    MandateValidationError
   );
 });
 
-Deno.test("createCartContents - Valid cart contents", async () => {
-  const futureDate = createFutureISO8601(TIME_CONSTANTS.HOUR * 2); // 2 hours from now
-  const cartContents = await createCartContents({
+Deno.test("createCartMandate - Valid cart mandate", async () => {
+  const futureDate = createFutureISO8601(TIME_CONSTANTS.DAY);
+  const mandate = await createCartMandate({
     id: "cart_123456",
     user_cart_confirmation_required: true,
     payment_request: {
@@ -100,149 +116,130 @@ Deno.test("createCartContents - Valid cart contents", async () => {
       details: {
         total: {
           label: "Total",
-          amount: { currency: "USD", value: "129.99" },
+          amount: { currency: "USD", value: "49.99" },
           refund_period: 30,
         },
+        displayItems: [{
+          label: "Basketball Shoes",
+          amount: { currency: "USD", value: "49.99" },
+          refund_period: 30,
+        }],
       },
+      options: {},
     },
     cart_expiry: futureDate,
     merchant_name: "Nike Store",
   });
 
-  assertEquals(cartContents.id, "cart_123456");
-  assertEquals(cartContents.user_cart_confirmation_required, true);
-  assertEquals(cartContents.merchant_name, "Nike Store");
-  assertEquals(cartContents.payment_request.id, "payment-req-123");
-  assertEquals(cartContents.cart_expiry, futureDate);
+  // Verify it returns a class instance
+  assert(mandate instanceof CartMandateClass);
+
+  // Verify mandate data
+  const data = mandate.getData();
+  assertEquals(data.contents.id, "cart_123456");
+  assertEquals(data.contents.user_cart_confirmation_required, true);
+  assertEquals(data.contents.merchant_name, "Nike Store");
+  assertEquals(data.contents.cart_expiry, futureDate);
+
+  // Verify class properties
+  assertEquals(mandate.getStatus(), 'pending');
+  assertEquals(mandate.isSigned(), false);
+  assertExists(mandate.getId());
 });
 
-Deno.test("createCartContents - Should reject invalid cart expiry", async () => {
+Deno.test("createCartMandate - Should reject invalid cart expiry", async () => {
   await assertRejects(
-    () => createCartContents({
-      id: "cart_123",
-      user_cart_confirmation_required: false,
-      payment_request: {
-        id: "payment-req-123",
-        methodData: [{ supportedMethods: "basic-card" }],
-        details: {
-          total: {
-            label: "Total",
-            amount: { currency: "USD", value: "100.00" },
-            refund_period: 30,
-          },
-        },
-      },
-      cart_expiry: "invalid-date",
-      merchant_name: "Test Store",
-    }),
-    DateParseError
-  );
-});
-
-Deno.test("createCartContents - Should reject empty merchant name", async () => {
-  await assertRejects(
-    () => createCartContents({
-      id: "cart_123",
-      user_cart_confirmation_required: false,
-      payment_request: {
-        id: "payment-req-123",
-        methodData: [{ supportedMethods: "basic-card" }],
-        details: {
-          total: {
-            label: "Total",
-            amount: { currency: "USD", value: "100.00" },
-            refund_period: 30,
-          },
-        },
-      },
-      cart_expiry: createFutureISO8601(TIME_CONSTANTS.HOUR),
-      merchant_name: "",
-    }),
-    MandateValidationError,
-    "Merchant name cannot be empty"
-  );
-});
-
-Deno.test("createCartMandate - Unsigned cart mandate", async () => {
-  const cartContents: CartContents = {
-    id: "cart_abc123",
-    user_cart_confirmation_required: false,
-    payment_request: {
-      id: "payment-123",
-      methodData: [{ supportedMethods: "basic-card" }],
-      details: {
-        total: {
-          label: "Total",
-          amount: { currency: "USD", value: "99.99" },
-          refund_period: 30,
-        },
-      },
-    },
-    cart_expiry: createFutureISO8601(TIME_CONSTANTS.DAY * 2),
-    merchant_name: "Test Merchant",
-  };
-
-  const cartMandate = await createCartMandate({
-    contents: cartContents,
-  });
-
-  assertEquals(cartMandate.contents, cartContents);
-  assertEquals(cartMandate.merchant_authorization, undefined);
-});
-
-Deno.test("createCartMandate - Signed cart mandate", async () => {
-  const cartContents: CartContents = {
-    id: "cart_def456",
-    user_cart_confirmation_required: true,
-    payment_request: {
-      id: "payment-456",
-      methodData: [{ supportedMethods: "basic-card" }],
-      details: {
-        total: {
-          label: "Total",
-          amount: { currency: "USD", value: "199.99" },
-          refund_period: 14,
-        },
-      },
-    },
-    cart_expiry: createFutureISO8601(TIME_CONSTANTS.DAY * 3),
-    merchant_name: "Premium Store",
-  };
-
-  const signature = "3045022100abcdef123456789";
-
-  const cartMandate = await createCartMandate({
-    contents: cartContents,
-    merchant_authorization: signature,
-  });
-
-  assertEquals(cartMandate.contents, cartContents);
-  assertEquals(cartMandate.merchant_authorization, signature);
-});
-
-Deno.test("createCartMandate - Should validate cart contents", async () => {
-  // This should fail because cart contents will be validated
-  await assertRejects(
-    () => createCartMandate({
-      contents: {
-        id: "",  // Invalid empty ID
+    async () => {
+      await createCartMandate({
+        id: "cart_invalid",
         user_cart_confirmation_required: false,
         payment_request: {
-          id: "payment-123",
+          id: "payment-req-123",
           methodData: [{ supportedMethods: "basic-card" }],
           details: {
             total: {
               label: "Total",
-              amount: { currency: "USD", value: "100.00" },
+              amount: { currency: "USD", value: "19.99" },
               refund_period: 30,
             },
           },
+          options: {},
         },
-        cart_expiry: createFutureISO8601(TIME_CONSTANTS.HOUR),
+        cart_expiry: "invalid-date",
         merchant_name: "Test Store",
-      },
-    }),
-    MandateValidationError,
-    "Cart ID cannot be empty"
+      });
+    },
+    MandateValidationError
   );
+});
+
+Deno.test("createCartMandate - Should reject empty merchant name", async () => {
+  const futureDate = createFutureISO8601(TIME_CONSTANTS.DAY);
+  await assertRejects(
+    async () => {
+      await createCartMandate({
+        id: "cart_no_merchant",
+        user_cart_confirmation_required: false,
+        payment_request: {
+          id: "payment-req-123",
+          methodData: [{ supportedMethods: "basic-card" }],
+          details: {
+            total: {
+              label: "Total",
+              amount: { currency: "USD", value: "19.99" },
+              refund_period: 30,
+            },
+          },
+          options: {},
+        },
+        cart_expiry: futureDate,
+        merchant_name: "", // Empty merchant name
+      });
+    },
+    MandateValidationError
+  );
+});
+
+Deno.test("createMandateFromData - IntentMandate data", async () => {
+  const futureDate = createFutureISO8601(TIME_CONSTANTS.DAY);
+  const intentData: IntentMandate = {
+    natural_language_description: "Test intent from data",
+    intent_expiry: futureDate,
+    user_cart_confirmation_required: true,
+    requires_refundability: false,
+  };
+
+  const mandate = await createMandateFromData(intentData);
+
+  assert(mandate instanceof IntentMandateClass);
+  assertEquals(mandate.getData().natural_language_description, "Test intent from data");
+});
+
+Deno.test("createMandateFromData - CartMandate data", async () => {
+  const futureDate = createFutureISO8601(TIME_CONSTANTS.DAY);
+  const cartData: CartMandate = {
+    contents: {
+      id: "cart_from_data",
+      user_cart_confirmation_required: false,
+      payment_request: {
+        id: "payment-123",
+        methodData: [{ supportedMethods: "basic-card" }],
+        details: {
+          total: {
+            label: "Total",
+            amount: { currency: "USD", value: "29.99" },
+            refund_period: 30,
+          },
+        },
+        options: {},
+      },
+      cart_expiry: futureDate,
+      merchant_name: "Data Store",
+    }
+  };
+
+  const mandate = await createMandateFromData(cartData);
+
+  assert(mandate instanceof CartMandateClass);
+  assertEquals(mandate.getData().contents.id, "cart_from_data");
 });

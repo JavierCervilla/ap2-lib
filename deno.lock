@@ -1,6 +1,7 @@
 {
   "version": "4",
   "specifiers": {
+    "jsr:@noble/hashes@^2.0.1": "2.0.1",
     "jsr:@std/assert@1": "1.0.14",
     "jsr:@std/internal@^1.0.10": "1.0.10",
     "npm:bip66@2": "2.0.0",
@@ -8,6 +9,9 @@
     "npm:knip@*": "5.64.3_@types+node@24.7.2_typescript@5.9.3"
   },
   "jsr": {
+    "@noble/hashes@2.0.1": {
+      "integrity": "e0e908292a0bf91099cf8ba0720a1647cef82ab38b588815b5e9535b4ff4d7bb"
+    },
     "@std/assert@1.0.14": {
       "integrity": "68d0d4a43b365abc927f45a9b85c639ea18a9fab96ad92281e493e4ed84abaa4",
       "dependencies": [
@@ -407,6 +411,7 @@
   },
   "workspace": {
     "dependencies": [
+      "jsr:@noble/hashes@^2.0.1",
       "jsr:@std/assert@1",
       "npm:bip66@2",
       "npm:currency-codes@^2.2.0"

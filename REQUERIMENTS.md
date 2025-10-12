@@ -21,11 +21,11 @@ Este es el módulo central de TypeScript/Deno que encapsulará toda la lógica d
 
 | Requisito | Detalle e Implementación | Justificación AP2 / Seguridad |
 | :--- | :--- | :--- |
-| **Tipado Fuerte (Strong Typing)** | Definir **interfaces TypeScript** para los objetos centrales del protocolo AP2, incluyendo `Intent Mandate` y `Cart Mandate`. | Es esencial para la **seguridad de los datos** y la coherencia del protocolo, replicando la estructura de los objetos definidos en `src/ap2/types` del repositorio oficial. |
-| **Generación de Mandatos** | Funciones que permitan la **creación** de `Intent Mandate` y `Cart Mandate` en formato serializable (JSON). | Los Mandatos son la **prueba verificable e inalterable** de las intenciones del usuario. |
-| **Firma Criptográfica (ECDSA)** | Funciones para aplicar **firmas digitales criptográficas** a los Mandatos, tanto por parte del usuario como del *merchant* (comerciante). | Debe utilizar el algoritmo **ECDSA**, como se requiere en las implementaciones seguras de demostración del protocolo. |
-| **Validación de Mandatos** | Funciones que realicen la **verificación de firmas** y la validación de *checksums* en las comunicaciones. | Mitiga las amenazas críticas **T1 Spoofing** (Suplantación) y **T2 Tampering** (Manipulación). |
-| **Pruebas Unitarias** | El módulo debe estar **100% testeado** para garantizar la fiabilidad de las funciones de seguridad y criptografía. | La confianza en la infraestructura de pagos depende totalmente de la precisión de este módulo. |
+| **Tipado Fuerte (Strong Typing)** | (Mantener la definición original, enfocada en la tipificación de `Intent Mandate` y `Cart Mandate`). | (Mantener la justificación original). |
+| **Generación de Mandatos** | (Mantener la definición original). | (Mantener la justificación original). |
+| **Firma Criptográfica (JWT/JWS)** | Funciones para generar y firmar digitalmente el objeto **`merchant_authorization`** como un **JSON Web Token (JWT)** [Conversación Histórica]. La firma debe utilizar **algoritmos asimétricos** (ej. **RS256**) [Conversación Histórica] con la **clave privada del *merchant***. | Esencial para garantizar la **autenticidad e integridad** de los contenidos del carrito. Mitiga el **T1 Spoofing** y el **T2 Tampering** [Conversación Histórica]. |
+| **Validación de Mandatos** | Funciones que implementen la lógica de **verificación del JWT**, incluyendo: 1. **Verificación de la firma digital** (usando la clave pública del *merchant*). 2. Validación de la **expiración de corta duración** (`exp`, 5-15 minutos) [Conversación Histórica]. 3. Comprobación del **identificador único (`jti`)** para **prevenir ataques de *replay*** (repetición) [Conversación Histórica]. 4. Recálculo y verificación del **`cart_hash`** (un *hash* seguro del `CartMandate`) [Conversación Histórica]. | Los Mandatos son la **prueba verificable e inalterable** de las intenciones del usuario, y estas validaciones son críticas para la seguridad financiera [Conversación Histórica]. |
+| **Pruebas Unitarias** | (Mantener la definición original: 100% testeado). | (Mantener la justificación original). |
 
 ---
 

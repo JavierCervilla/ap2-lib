@@ -1,18 +1,20 @@
 /**
  * Mandate Factory
  *
- * Functions for creating and validating AP2 mandates.
- * Implementation follows TDD - these functions pass the pre-written tests.
+ * Clean OOP-based API for creating and managing AP2 mandates.
+ * Follows SOLID principles with class-based implementations.
  */
 
 import type { IntentMandate, CartContents, CartMandate } from "../types/mod.ts";
+import type { PaymentRequest } from "../types/mod.ts";
+
+// Import class-based implementations
 import {
-  MandateValidationError,
-  DateParseError,
-  isValidISO8601,
-  parseISO8601,
-  isExpired
-} from "../utils/mod.ts";
+  IntentMandateClass,
+  CartMandateClass,
+  createMandateClass,
+  type MandateStatus
+} from "./mandate-classes.ts";
 
 /**
  * Input parameters for creating an IntentMandate
@@ -32,7 +34,7 @@ export interface CreateIntentMandateParams {
 export interface CreateCartContentsParams {
   id: string;
   user_cart_confirmation_required: boolean;
-  payment_request: CartContents["payment_request"];
+  payment_request: PaymentRequest;
   cart_expiry: string;
   merchant_name: string;
 }
@@ -46,31 +48,20 @@ export interface CreateCartMandateParams {
 }
 
 /**
- * Creates a new IntentMandate with validation
+ * Creates a new IntentMandate with validation and optional signing
  *
  * @param params - Parameters for creating the mandate
- * @returns Promise resolving to a validated IntentMandate
+ * @param privateKey - Optional private key to sign the mandate immediately
+ * @returns Promise resolving to a new IntentMandateClass instance
  * @throws MandateValidationError if validation fails
  * @throws DateParseError if date format is invalid
  */
-export async function createIntentMandate(params: CreateIntentMandateParams): Promise<IntentMandate> {
-  // Validate natural language description
-  if (!params.natural_language_description || params.natural_language_description.trim() === "") {
-    throw new MandateValidationError("Description cannot be empty");
-  }
-
-  // Validate expiry date format
-  if (!isValidISO8601(params.intent_expiry)) {
-    throw new DateParseError(`Invalid ISO 8601 date format: ${params.intent_expiry}`);
-  }
-
-  // Check if expiry date is in the past
-  if (isExpired(params.intent_expiry)) {
-    throw new MandateValidationError("Expiry date cannot be in the past");
-  }
-
-  // Create the mandate with defaults
-  const mandate: IntentMandate = {
+export async function createIntentMandate(
+  params: CreateIntentMandateParams,
+  privateKey?: string
+): Promise<IntentMandateClass> {
+  // Create mandate data object
+  const mandateData: IntentMandate = {
     user_cart_confirmation_required: params.user_cart_confirmation_required ?? true,
     natural_language_description: params.natural_language_description,
     merchants: params.merchants,
@@ -79,72 +70,66 @@ export async function createIntentMandate(params: CreateIntentMandateParams): Pr
     intent_expiry: params.intent_expiry,
   };
 
-  return mandate;
+  // Create and return class instance
+  return await IntentMandateClass.createNew(mandateData, privateKey);
 }
 
 /**
- * Creates new CartContents with validation
+ * Creates a new CartMandate from cart contents with validation and optional signing
  *
- * @param params - Parameters for creating cart contents
- * @returns Promise resolving to validated CartContents
- * @throws MandateValidationError if validation fails
- * @throws DateParseError if date format is invalid
+ * @param contentsParams - Parameters for creating cart contents
+ * @param mandateParams - Additional mandate parameters (like merchant_authorization)
+ * @param privateKey - Optional private key to sign the mandate immediately
+ * @returns Promise resolving to a new CartMandateClass instance
  */
-export async function createCartContents(params: CreateCartContentsParams): Promise<CartContents> {
-  // Validate cart ID
-  if (!params.id || params.id.trim() === "") {
-    throw new MandateValidationError("Cart ID cannot be empty");
-  }
-
-  // Validate merchant name
-  if (!params.merchant_name || params.merchant_name.trim() === "") {
-    throw new MandateValidationError("Merchant name cannot be empty");
-  }
-
-  // Validate cart expiry date format
-  if (!isValidISO8601(params.cart_expiry)) {
-    throw new DateParseError(`Invalid ISO 8601 date format: ${params.cart_expiry}`);
-  }
-
-  // Create the cart contents
+export async function createCartMandate(
+  contentsParams: CreateCartContentsParams,
+  mandateParams: Omit<CreateCartMandateParams, 'contents'> = {},
+  privateKey?: string
+): Promise<CartMandateClass> {
+  // Create cart contents
   const cartContents: CartContents = {
-    id: params.id,
-    user_cart_confirmation_required: params.user_cart_confirmation_required,
-    payment_request: params.payment_request,
-    cart_expiry: params.cart_expiry,
-    merchant_name: params.merchant_name,
+    id: contentsParams.id,
+    user_cart_confirmation_required: contentsParams.user_cart_confirmation_required,
+    payment_request: contentsParams.payment_request,
+    cart_expiry: contentsParams.cart_expiry,
+    merchant_name: contentsParams.merchant_name,
   };
 
-  return cartContents;
+  // Create cart mandate data
+  const cartMandateData: CartMandate = {
+    contents: cartContents,
+    merchant_authorization: mandateParams.merchant_authorization,
+  };
+
+  // Create and return class instance
+  return await CartMandateClass.createNew(cartMandateData, privateKey);
 }
 
 /**
- * Creates a new CartMandate with validation
+ * Factory function to create mandate classes from existing mandate data
  *
- * @param params - Parameters for creating the cart mandate
- * @returns Promise resolving to a validated CartMandate
- * @throws MandateValidationError if validation fails
+ * @param mandateData - The mandate data (can be signed or unsigned)
+ * @param options - Optional signing/verification options
+ * @returns IntentMandateClass or CartMandateClass instance
  */
-export async function createCartMandate(params: CreateCartMandateParams): Promise<CartMandate> {
-  // Validate cart contents by checking required fields
-  if (!params.contents.id || params.contents.id.trim() === "") {
-    throw new MandateValidationError("Cart ID cannot be empty");
+export async function createMandateFromData(
+  mandateData: IntentMandate | CartMandate |
+               (IntentMandate & { signature?: string }) |
+               (CartMandate & { merchant_authorization?: string }),
+  options?: {
+    privateKey?: string;
+    publicKey?: string;
+    validateSignature?: boolean
   }
-
-  if (!params.contents.merchant_name || params.contents.merchant_name.trim() === "") {
-    throw new MandateValidationError("Merchant name cannot be empty");
-  }
-
-  // Validate date format
-  if (!isValidISO8601(params.contents.cart_expiry)) {
-    throw new DateParseError(`Invalid ISO 8601 date format: ${params.contents.cart_expiry}`);
-  }
-
-  // Create the cart mandate
-  const cartMandate: CartMandate = {
-    contents: params.contents,
-    merchant_authorization: params.merchant_authorization,
-  };
-
-  return cartMandate;
+): Promise<IntentMandateClass | CartMandateClass> {
+  return await createMandateClass(mandateData, options);
 }
+
+// Re-export class types and functions
+export {
+  IntentMandateClass,
+  CartMandateClass,
+  createMandateClass,
+  type MandateStatus
+} from "./mandate-classes.ts";

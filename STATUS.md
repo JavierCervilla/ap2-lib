@@ -35,8 +35,8 @@ La implementación actual se enfoca en el módulo core `ap2-lib` con una base s�
 #### 📊 Métricas de Calidad
 
 ```
-Tests: 118 pasando | 0 fallando
-Cobertura: 75.4% líneas | 81.3% ramas
+Tests: 157 pasando | 0 fallando
+Cobertura: 77.9% líneas | 81.3% ramas
 Archivos: 29 módulos
 Principios SOLID: ✅ Aplicados (refactorizado)
 ```
