@@ -209,4 +209,25 @@ export class PaymentMandateContentsValidator extends BaseValidator<PaymentMandat
   static withConfig(config: ValidationConfig): PaymentMandateContentsValidator {
     return new PaymentMandateContentsValidator(config);
   }
+
+  /**
+   * Static method to validate PaymentMandateContents with default config
+   */
+  static async validate(contents: PaymentMandateContents): Promise<ValidationResult> {
+    return await PaymentMandateContentsValidator.withConfig(DEFAULT_VALIDATION_CONFIG).validate(contents);
+  }
+
+  /**
+   * Static method to validate PaymentMandateContents integrity with default config
+   */
+  static async validateIntegrity(contents: PaymentMandateContents): Promise<ValidationResult> {
+    return await PaymentMandateContentsValidator.withConfig(DEFAULT_VALIDATION_CONFIG).validateIntegrity(contents);
+  }
+
+  /**
+   * Static method to check PaymentMandateContents expiry with default config
+   */
+  static async checkExpiry(contents: PaymentMandateContents, currentDate = new Date()): Promise<boolean> {
+    return await PaymentMandateContentsValidator.withConfig(DEFAULT_VALIDATION_CONFIG).checkExpiry(contents, currentDate);
+  }
 }

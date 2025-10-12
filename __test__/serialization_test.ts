@@ -12,21 +12,14 @@ import {
   TIME_CONSTANTS,
 } from "../src/utils/mod.ts";
 
-// Import functions that don't exist yet - will be implemented to pass these tests
+// Import serialization classes - using clean class-based API
 import {
-  serializeIntentMandate,
-  deserializeIntentMandate,
-  serializeCartContents,
-  deserializeCartContents,
-  serializeCartMandate,
-  deserializeCartMandate,
-  serializePaymentRequest,
-  deserializePaymentRequest,
-  serializeMandate,
-  deserializeMandate,
-} from "../src/core/serialization.ts";
-import { IntentMandateSerializer } from "../src/core/serialization/intent-mandate-serializer.ts";
-import { MandateSerializationStrategyRegistry } from "../src/core/serialization/mandate-serialization-strategy.ts";
+  IntentMandateSerializer,
+  CartContentsSerializer,
+  CartMandateSerializer,
+  PaymentRequestSerializer,
+  MandateSerializationStrategyRegistry,
+} from "../src/mod.ts";
 
 // Test data fixtures
 const validIntentMandate: IntentMandate = {
@@ -82,8 +75,8 @@ const validCartMandate: CartMandate = {
   merchant_authorization: "304502210089abcdef123456789...",
 };
 
-Deno.test("serializeIntentMandate - Serializes valid IntentMandate to JSON string", async () => {
-  const serialized = await serializeIntentMandate(validIntentMandate);
+Deno.test("IntentMandateSerializer.serialize - Serializes valid IntentMandate to JSON string", async () => {
+  const serialized = await IntentMandateSerializer.serialize(validIntentMandate);
 
   assert(typeof serialized === "string", "Should return a string");
 
@@ -97,9 +90,9 @@ Deno.test("serializeIntentMandate - Serializes valid IntentMandate to JSON strin
   assertEquals(parsed.user_cart_confirmation_required, validIntentMandate.user_cart_confirmation_required);
 });
 
-Deno.test("deserializeIntentMandate - Deserializes valid JSON to IntentMandate", async () => {
-  const serialized = await serializeIntentMandate(validIntentMandate);
-  const deserialized = await deserializeIntentMandate(serialized);
+Deno.test("IntentMandateSerializer.deserialize - Deserializes valid JSON to IntentMandate", async () => {
+  const serialized = await IntentMandateSerializer.serialize(validIntentMandate);
+  const deserialized = await IntentMandateSerializer.deserialize(serialized);
 
   assertEquals(deserialized.natural_language_description, validIntentMandate.natural_language_description);
   assertEquals(deserialized.intent_expiry, validIntentMandate.intent_expiry);
@@ -108,29 +101,29 @@ Deno.test("deserializeIntentMandate - Deserializes valid JSON to IntentMandate",
   assertEquals(deserialized.requires_refundability, validIntentMandate.requires_refundability);
 });
 
-Deno.test("deserializeIntentMandate - Throws on invalid JSON", async () => {
+Deno.test("IntentMandateSerializer.deserialize - Throws on invalid JSON", async () => {
   await assertRejects(
-    () => deserializeIntentMandate("not valid json"),
+    () => IntentMandateSerializer.deserialize("not valid json"),
     Error,
     "Invalid JSON"
   );
 });
 
-Deno.test("deserializeIntentMandate - Throws on missing required fields", async () => {
+Deno.test("IntentMandateSerializer.deserialize - Throws on missing required fields", async () => {
   const invalidJson = JSON.stringify({
     // Missing natural_language_description
     intent_expiry: createFutureISO8601(TIME_CONSTANTS.DAY),
   });
 
   await assertRejects(
-    () => deserializeIntentMandate(invalidJson),
+    () => IntentMandateSerializer.deserialize(invalidJson),
     Error,
     "required"
   );
 });
 
-Deno.test("serializeCartContents - Serializes valid CartContents to JSON string", async () => {
-  const serialized = await serializeCartContents(validCartContents);
+Deno.test("CartContentsSerializer.serialize - Serializes valid CartContents to JSON string", async () => {
+  const serialized = await CartContentsSerializer.serialize(validCartContents);
 
   assert(typeof serialized === "string", "Should return a string");
 
@@ -140,9 +133,9 @@ Deno.test("serializeCartContents - Serializes valid CartContents to JSON string"
   assertEquals(parsed.cart_expiry, validCartContents.cart_expiry);
 });
 
-Deno.test("deserializeCartContents - Deserializes valid JSON to CartContents", async () => {
-  const serialized = await serializeCartContents(validCartContents);
-  const deserialized = await deserializeCartContents(serialized);
+Deno.test("CartContentsSerializer.deserialize - Deserializes valid JSON to CartContents", async () => {
+  const serialized = await CartContentsSerializer.serialize(validCartContents);
+  const deserialized = await CartContentsSerializer.deserialize(serialized);
 
   assertEquals(deserialized.id, validCartContents.id);
   assertEquals(deserialized.merchant_name, validCartContents.merchant_name);
@@ -150,8 +143,8 @@ Deno.test("deserializeCartContents - Deserializes valid JSON to CartContents", a
   assertEquals(deserialized.user_cart_confirmation_required, validCartContents.user_cart_confirmation_required);
 });
 
-Deno.test("serializeCartMandate - Serializes valid CartMandate to JSON string", async () => {
-  const serialized = await serializeCartMandate(validCartMandate);
+Deno.test("CartMandateSerializer.serialize - Serializes valid CartMandate to JSON string", async () => {
+  const serialized = await CartMandateSerializer.serialize(validCartMandate);
 
   assert(typeof serialized === "string", "Should return a string");
 
@@ -161,15 +154,15 @@ Deno.test("serializeCartMandate - Serializes valid CartMandate to JSON string", 
 });
 
 Deno.test("deserializeCartMandate - Deserializes valid JSON to CartMandate", async () => {
-  const serialized = await serializeCartMandate(validCartMandate);
-  const deserialized = await deserializeCartMandate(serialized);
+  const serialized = await CartMandateSerializer.serialize(validCartMandate);
+  const deserialized = await CartMandateSerializer.deserialize(serialized);
 
   assertEquals(deserialized.contents.id, validCartMandate.contents.id);
   assertEquals(deserialized.merchant_authorization, validCartMandate.merchant_authorization);
 });
 
-Deno.test("serializePaymentRequest - Serializes valid PaymentRequest to JSON string", async () => {
-  const serialized = await serializePaymentRequest(validPaymentRequest);
+Deno.test("PaymentRequestSerializer.serialize - Serializes valid PaymentRequest to JSON string", async () => {
+  const serialized = await PaymentRequestSerializer.serialize(validPaymentRequest);
 
   assert(typeof serialized === "string", "Should return a string");
 
@@ -179,17 +172,17 @@ Deno.test("serializePaymentRequest - Serializes valid PaymentRequest to JSON str
   assertEquals(parsed.methodData.length, validPaymentRequest.methodData.length);
 });
 
-Deno.test("deserializePaymentRequest - Deserializes valid JSON to PaymentRequest", async () => {
-  const serialized = await serializePaymentRequest(validPaymentRequest);
-  const deserialized = await deserializePaymentRequest(serialized);
+Deno.test("PaymentRequestSerializer.deserialize - Deserializes valid JSON to PaymentRequest", async () => {
+  const serialized = await PaymentRequestSerializer.serialize(validPaymentRequest);
+  const deserialized = await PaymentRequestSerializer.deserialize(serialized);
 
   assertEquals(deserialized.id, validPaymentRequest.id);
   assertEquals(deserialized.methodData.length, validPaymentRequest.methodData.length);
   assertEquals(deserialized.details.total.amount.currency, validPaymentRequest.details.total.amount.currency);
 });
 
-Deno.test("serializeMandate - Handles IntentMandate", async () => {
-  const serialized = await serializeMandate(validIntentMandate);
+Deno.test("MandateSerializationStrategyRegistry.serialize - Handles IntentMandate", async () => {
+  const serialized = await MandateSerializationStrategyRegistry.serialize(validIntentMandate);
 
   assert(typeof serialized === "string", "Should return a string");
 
@@ -197,8 +190,8 @@ Deno.test("serializeMandate - Handles IntentMandate", async () => {
   assertEquals(parsed.natural_language_description, validIntentMandate.natural_language_description);
 });
 
-Deno.test("serializeMandate - Handles CartMandate", async () => {
-  const serialized = await serializeMandate(validCartMandate);
+Deno.test("MandateSerializationStrategyRegistry.serialize - Handles CartMandate", async () => {
+  const serialized = await MandateSerializationStrategyRegistry.serialize(validCartMandate);
 
   assert(typeof serialized === "string", "Should return a string");
 
@@ -206,18 +199,18 @@ Deno.test("serializeMandate - Handles CartMandate", async () => {
   assert(parsed.contents, "Should have contents field for CartMandate");
 });
 
-Deno.test("deserializeMandate - Detects and deserializes IntentMandate", async () => {
-  const serialized = await serializeMandate(validIntentMandate);
-  const deserialized = await deserializeMandate(serialized);
+Deno.test("MandateSerializationStrategyRegistry.deserialize - Detects and deserializes IntentMandate", async () => {
+  const serialized = await MandateSerializationStrategyRegistry.serialize(validIntentMandate);
+  const deserialized = await MandateSerializationStrategyRegistry.deserialize(serialized);
 
   // Should be detected as IntentMandate
   assert('natural_language_description' in deserialized, "Should be IntentMandate");
   assertEquals((deserialized as IntentMandate).natural_language_description, validIntentMandate.natural_language_description);
 });
 
-Deno.test("deserializeMandate - Detects and deserializes CartMandate", async () => {
-  const serialized = await serializeMandate(validCartMandate);
-  const deserialized = await deserializeMandate(serialized);
+Deno.test("MandateSerializationStrategyRegistry.deserialize - Detects and deserializes CartMandate", async () => {
+  const serialized = await MandateSerializationStrategyRegistry.serialize(validCartMandate);
+  const deserialized = await MandateSerializationStrategyRegistry.deserialize(serialized);
 
   // Should be detected as CartMandate
   assert('contents' in deserialized, "Should be CartMandate");
@@ -226,13 +219,13 @@ Deno.test("deserializeMandate - Detects and deserializes CartMandate", async () 
 
 Deno.test("Serialization round-trip maintains data integrity", async () => {
   // Test IntentMandate round-trip
-  const intentSerialized = await serializeIntentMandate(validIntentMandate);
-  const intentDeserialized = await deserializeIntentMandate(intentSerialized);
+  const intentSerialized = await IntentMandateSerializer.serialize(validIntentMandate);
+  const intentDeserialized = await IntentMandateSerializer.deserialize(intentSerialized);
   assertEquals(intentDeserialized, validIntentMandate);
 
   // Test CartMandate round-trip
-  const cartSerialized = await serializeCartMandate(validCartMandate);
-  const cartDeserialized = await deserializeCartMandate(cartSerialized);
+  const cartSerialized = await CartMandateSerializer.serialize(validCartMandate);
+  const cartDeserialized = await CartMandateSerializer.deserialize(cartSerialized);
   assertEquals(cartDeserialized.contents.id, validCartMandate.contents.id);
   assertEquals(cartDeserialized.merchant_authorization, validCartMandate.merchant_authorization);
 });
@@ -243,8 +236,8 @@ Deno.test("Serialization handles optional fields correctly", async () => {
     intent_expiry: createFutureISO8601(TIME_CONSTANTS.DAY),
   };
 
-  const serialized = await serializeIntentMandate(minimalIntent);
-  const deserialized = await deserializeIntentMandate(serialized);
+  const serialized = await IntentMandateSerializer.serialize(minimalIntent);
+  const deserialized = await IntentMandateSerializer.deserialize(serialized);
 
   assertEquals(deserialized.natural_language_description, minimalIntent.natural_language_description);
   assertEquals(deserialized.intent_expiry, minimalIntent.intent_expiry);
@@ -261,8 +254,8 @@ Deno.test("Serialization preserves array types correctly", async () => {
     skus: ["SKU1", "SKU2", "SKU3"],
   };
 
-  const serialized = await serializeIntentMandate(intentWithArrays);
-  const deserialized = await deserializeIntentMandate(serialized);
+  const serialized = await IntentMandateSerializer.serialize(intentWithArrays);
+  const deserialized = await IntentMandateSerializer.deserialize(serialized);
 
   assert(Array.isArray(deserialized.merchants), "Merchants should be array");
   assert(Array.isArray(deserialized.skus), "SKUs should be array");
@@ -270,14 +263,14 @@ Deno.test("Serialization preserves array types correctly", async () => {
   assertEquals(deserialized.skus?.length, 3);
 });
 
-Deno.test("deserializeMandate - Throws on unknown mandate type", async () => {
+Deno.test("MandateSerializationStrategyRegistry.deserialize - Throws on unknown mandate type", async () => {
   const unknownMandateJson = JSON.stringify({
     unknown_field: "value",
     other_field: "another value",
   });
 
   await assertRejects(
-    () => deserializeMandate(unknownMandateJson),
+    () => MandateSerializationStrategyRegistry.deserialize(unknownMandateJson),
     Error,
     "Unknown mandate type"
   );
@@ -317,21 +310,21 @@ Deno.test("IntentMandateSerializer - checkBooleanFields method", async () => {
   assertEquals(result.requires_refundability, undefined);
 });
 
-Deno.test("serializeMandate/deserializeMandate - Unknown mandate type errors", async () => {
+Deno.test("MandateSerializationStrategyRegistry.serialize/MandateSerializationStrategyRegistry.deserialize - Unknown mandate type errors", async () => {
   await assertRejects(
-    () => serializeMandate({unknown_type: "test"} as any),
+    () => MandateSerializationStrategyRegistry.serialize({unknown_type: "test"} as any),
     Error,
     "Unknown mandate type"
   );
 
   await assertRejects(
-    () => deserializeMandate(JSON.stringify({unknown_type: "test"})),
+    () => MandateSerializationStrategyRegistry.deserialize(JSON.stringify({unknown_type: "test"})),
     Error,
     "Unknown mandate type"
   );
 });
 
-Deno.test("deserializeCartContents - Throws on missing id field", async () => {
+Deno.test("CartContentsSerializer.deserialize - Throws on missing id field", async () => {
   const invalidJson = JSON.stringify({
     // Missing id
     merchant_name: "Test Store",
@@ -341,13 +334,13 @@ Deno.test("deserializeCartContents - Throws on missing id field", async () => {
   });
 
   await assertRejects(
-    () => deserializeCartContents(invalidJson),
+    () => CartContentsSerializer.deserialize(invalidJson),
     Error,
     "Missing required field 'id'"
   );
 });
 
-Deno.test("deserializeCartContents - Throws on missing merchant_name field", async () => {
+Deno.test("CartContentsSerializer.deserialize - Throws on missing merchant_name field", async () => {
   const invalidJson = JSON.stringify({
     id: "cart_123",
     // Missing merchant_name
@@ -357,13 +350,13 @@ Deno.test("deserializeCartContents - Throws on missing merchant_name field", asy
   });
 
   await assertRejects(
-    () => deserializeCartContents(invalidJson),
+    () => CartContentsSerializer.deserialize(invalidJson),
     Error,
     "Missing required field 'merchant_name'"
   );
 });
 
-Deno.test("deserializeCartContents - Throws on missing cart_expiry field", async () => {
+Deno.test("CartContentsSerializer.deserialize - Throws on missing cart_expiry field", async () => {
   const invalidJson = JSON.stringify({
     id: "cart_123",
     merchant_name: "Test Store",
@@ -373,13 +366,13 @@ Deno.test("deserializeCartContents - Throws on missing cart_expiry field", async
   });
 
   await assertRejects(
-    () => deserializeCartContents(invalidJson),
+    () => CartContentsSerializer.deserialize(invalidJson),
     Error,
     "Missing required field 'cart_expiry'"
   );
 });
 
-Deno.test("deserializeCartContents - Throws on missing payment_request field", async () => {
+Deno.test("CartContentsSerializer.deserialize - Throws on missing payment_request field", async () => {
   const invalidJson = JSON.stringify({
     id: "cart_123",
     merchant_name: "Test Store",
@@ -389,13 +382,13 @@ Deno.test("deserializeCartContents - Throws on missing payment_request field", a
   });
 
   await assertRejects(
-    () => deserializeCartContents(invalidJson),
+    () => CartContentsSerializer.deserialize(invalidJson),
     Error,
     "Missing required field 'payment_request'"
   );
 });
 
-Deno.test("deserializeCartContents - Throws on missing user_cart_confirmation_required field", async () => {
+Deno.test("CartContentsSerializer.deserialize - Throws on missing user_cart_confirmation_required field", async () => {
   const invalidJson = JSON.stringify({
     id: "cart_123",
     merchant_name: "Test Store",
@@ -405,7 +398,7 @@ Deno.test("deserializeCartContents - Throws on missing user_cart_confirmation_re
   });
 
   await assertRejects(
-    () => deserializeCartContents(invalidJson),
+    () => CartContentsSerializer.deserialize(invalidJson),
     Error,
     "Missing required field 'user_cart_confirmation_required'"
   );
@@ -413,7 +406,7 @@ Deno.test("deserializeCartContents - Throws on missing user_cart_confirmation_re
 
 Deno.test("deserializeCartMandate - Throws on invalid JSON", async () => {
   await assertRejects(
-    () => deserializeCartMandate("invalid json"),
+    () => CartMandateSerializer.deserialize("invalid json"),
     Error,
     "Invalid JSON"
   );
@@ -426,21 +419,21 @@ Deno.test("deserializeCartMandate - Throws on missing contents field", async () 
   });
 
   await assertRejects(
-    () => deserializeCartMandate(invalidJson),
+    () => CartMandateSerializer.deserialize(invalidJson),
     Error,
     "Missing required field 'contents'"
   );
 });
 
-Deno.test("deserializePaymentRequest - Throws on invalid JSON", async () => {
+Deno.test("PaymentRequestSerializer.deserialize - Throws on invalid JSON", async () => {
   await assertRejects(
-    () => deserializePaymentRequest("not json"),
+    () => PaymentRequestSerializer.deserialize("not json"),
     Error,
     "Invalid JSON"
   );
 });
 
-Deno.test("deserializePaymentRequest - Throws on missing methodData field", async () => {
+Deno.test("PaymentRequestSerializer.deserialize - Throws on missing methodData field", async () => {
   const invalidJson = JSON.stringify({
     id: "payment-123",
     // Missing methodData
@@ -454,13 +447,13 @@ Deno.test("deserializePaymentRequest - Throws on missing methodData field", asyn
   });
 
   await assertRejects(
-    () => deserializePaymentRequest(invalidJson),
+    () => PaymentRequestSerializer.deserialize(invalidJson),
     Error,
     "Missing required field 'methodData'"
   );
 });
 
-Deno.test("deserializePaymentRequest - Throws on missing details field", async () => {
+Deno.test("PaymentRequestSerializer.deserialize - Throws on missing details field", async () => {
   const invalidJson = JSON.stringify({
     id: "payment-123",
     methodData: [{ supportedMethods: "basic-card" }],
@@ -468,27 +461,27 @@ Deno.test("deserializePaymentRequest - Throws on missing details field", async (
   });
 
   await assertRejects(
-    () => deserializePaymentRequest(invalidJson),
+    () => PaymentRequestSerializer.deserialize(invalidJson),
     Error,
     "Missing required field 'details'"
   );
 });
 
-Deno.test("serializeMandate - Throws on unknown mandate type", async () => {
+Deno.test("MandateSerializationStrategyRegistry.serialize - Throws on unknown mandate type", async () => {
   const unknownMandate = {
     unknown_field: "value",
   } as any;
 
   await assertRejects(
-    () => serializeMandate(unknownMandate),
+    () => MandateSerializationStrategyRegistry.serialize(unknownMandate),
     Error,
     "Unknown mandate type"
   );
 });
 
-Deno.test("deserializeMandate - Throws on invalid JSON", async () => {
+Deno.test("MandateSerializationStrategyRegistry.deserialize - Throws on invalid JSON", async () => {
   await assertRejects(
-    () => deserializeMandate("not valid json"),
+    () => MandateSerializationStrategyRegistry.deserialize("not valid json"),
     Error,
     "Invalid JSON"
   );
@@ -500,8 +493,8 @@ Deno.test("Serialization handles CartMandate without merchant_authorization", as
     // merchant_authorization is optional
   };
 
-  const serialized = await serializeCartMandate(cartMandateWithoutAuth);
-  const deserialized = await deserializeCartMandate(serialized);
+  const serialized = await CartMandateSerializer.serialize(cartMandateWithoutAuth);
+  const deserialized = await CartMandateSerializer.deserialize(serialized);
 
   assertEquals(deserialized.contents.id, cartMandateWithoutAuth.contents.id);
   assertEquals(deserialized.merchant_authorization, undefined);
@@ -521,8 +514,8 @@ Deno.test("Serialization preserves PaymentRequest with all optional fields", asy
     // options is optional
   };
 
-  const serialized = await serializePaymentRequest(minimalPaymentRequest);
-  const deserialized = await deserializePaymentRequest(serialized);
+  const serialized = await PaymentRequestSerializer.serialize(minimalPaymentRequest);
+  const deserialized = await PaymentRequestSerializer.deserialize(serialized);
 
   assertEquals(deserialized.id, minimalPaymentRequest.id);
   assertEquals(deserialized.details.total.amount.currency, "EUR");
@@ -555,8 +548,8 @@ Deno.test("Serialization handles PaymentRequest with displayItems and total", as
     },
   };
 
-  const serialized = await serializePaymentRequest(paymentRequestWithItems);
-  const deserialized = await deserializePaymentRequest(serialized);
+  const serialized = await PaymentRequestSerializer.serialize(paymentRequestWithItems);
+  const deserialized = await PaymentRequestSerializer.deserialize(serialized);
 
   assertEquals(deserialized.details.displayItems?.length, 2);
   assertEquals(deserialized.details.displayItems?.[0].label, "Item 1");
@@ -612,8 +605,8 @@ Deno.test("Serialization handles complex nested structures", async () => {
     merchant_authorization: "304502210089abcdef123456789premium_electronics_signature",
   };
 
-  const serialized = await serializeCartMandate(complexCartMandate);
-  const deserialized = await deserializeCartMandate(serialized);
+  const serialized = await CartMandateSerializer.serialize(complexCartMandate);
+  const deserialized = await CartMandateSerializer.deserialize(serialized);
 
   // Verify deep structure preservation
   assertEquals(deserialized.contents.id, "complex_cart_789");
@@ -626,11 +619,11 @@ Deno.test("Serialization handles complex nested structures", async () => {
 
 Deno.test("Generic mandate serialization correctly identifies IntentMandate vs CartMandate", async () => {
   // Test both types through the generic interface
-  const intentSerialized = await serializeMandate(validIntentMandate);
-  const cartSerialized = await serializeMandate(validCartMandate);
+  const intentSerialized = await MandateSerializationStrategyRegistry.serialize(validIntentMandate);
+  const cartSerialized = await MandateSerializationStrategyRegistry.serialize(validCartMandate);
 
-  const intentDeserialized = await deserializeMandate(intentSerialized);
-  const cartDeserialized = await deserializeMandate(cartSerialized);
+  const intentDeserialized = await MandateSerializationStrategyRegistry.deserialize(intentSerialized);
+  const cartDeserialized = await MandateSerializationStrategyRegistry.deserialize(cartSerialized);
 
   // Verify types are correctly identified
   assert('natural_language_description' in intentDeserialized, "Should be IntentMandate");
