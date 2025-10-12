@@ -168,4 +168,25 @@ export class PaymentRequestValidator extends BaseValidator<PaymentRequest> {
   static withConfig(config: ValidationConfig): PaymentRequestValidator {
     return new PaymentRequestValidator(config);
   }
+
+  /**
+   * Static method to validate PaymentRequest with default config
+   */
+  static async validate(paymentRequest: PaymentRequest): Promise<ValidationResult> {
+    return await PaymentRequestValidator.withConfig(DEFAULT_VALIDATION_CONFIG).validate(paymentRequest);
+  }
+
+  /**
+   * Static method to validate PaymentRequest integrity with default config
+   */
+  static async validateIntegrity(paymentRequest: PaymentRequest): Promise<ValidationResult> {
+    return await PaymentRequestValidator.withConfig(DEFAULT_VALIDATION_CONFIG).validateIntegrity(paymentRequest);
+  }
+
+  /**
+   * Static method to check PaymentRequest expiry with default config
+   */
+  static async checkExpiry(paymentRequest: PaymentRequest, currentDate = new Date()): Promise<boolean> {
+    return await PaymentRequestValidator.withConfig(DEFAULT_VALIDATION_CONFIG).checkExpiry(paymentRequest, currentDate);
+  }
 }

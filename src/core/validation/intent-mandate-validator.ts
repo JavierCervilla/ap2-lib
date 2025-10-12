@@ -90,4 +90,25 @@ export class IntentMandateValidator extends BaseValidator<IntentMandate> {
   static withConfig(config: ValidationConfig): IntentMandateValidator {
     return new IntentMandateValidator(config);
   }
+
+  /**
+   * Static method to validate IntentMandate with default config
+   */
+  static async validate(mandate: IntentMandate): Promise<ValidationResult> {
+    return await IntentMandateValidator.withConfig(DEFAULT_VALIDATION_CONFIG).validate(mandate);
+  }
+
+  /**
+   * Static method to validate IntentMandate integrity with default config
+   */
+  static async validateIntegrity(mandate: IntentMandate): Promise<ValidationResult> {
+    return await IntentMandateValidator.withConfig(DEFAULT_VALIDATION_CONFIG).validateIntegrity(mandate);
+  }
+
+  /**
+   * Static method to check IntentMandate expiry with default config
+   */
+  static async checkExpiry(mandate: IntentMandate, currentDate = new Date()): Promise<boolean> {
+    return await IntentMandateValidator.withConfig(DEFAULT_VALIDATION_CONFIG).checkExpiry(mandate, currentDate);
+  }
 }

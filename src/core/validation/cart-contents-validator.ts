@@ -127,4 +127,25 @@ export class CartContentsValidator extends BaseValidator<CartContents> {
   static withConfig(config: ValidationConfig): CartContentsValidator {
     return new CartContentsValidator(config);
   }
+
+  /**
+   * Static method to validate CartContents with default config
+   */
+  static async validate(cartContents: CartContents): Promise<ValidationResult> {
+    return await CartContentsValidator.withConfig(DEFAULT_VALIDATION_CONFIG).validate(cartContents);
+  }
+
+  /**
+   * Static method to validate CartContents integrity with default config
+   */
+  static async validateIntegrity(cartContents: CartContents): Promise<ValidationResult> {
+    return await CartContentsValidator.withConfig(DEFAULT_VALIDATION_CONFIG).validateIntegrity(cartContents);
+  }
+
+  /**
+   * Static method to check CartContents expiry with default config
+   */
+  static async checkExpiry(cartContents: CartContents, currentDate = new Date()): Promise<boolean> {
+    return await CartContentsValidator.withConfig(DEFAULT_VALIDATION_CONFIG).checkExpiry(cartContents, currentDate);
+  }
 }

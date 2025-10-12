@@ -65,4 +65,25 @@ export class CartMandateValidator extends BaseValidator<CartMandate> {
   static withConfig(config: ValidationConfig): CartMandateValidator {
     return new CartMandateValidator(config);
   }
+
+  /**
+   * Static method to validate CartMandate with default config
+   */
+  static async validate(cartMandate: CartMandate): Promise<ValidationResult> {
+    return await CartMandateValidator.withConfig(DEFAULT_VALIDATION_CONFIG).validate(cartMandate);
+  }
+
+  /**
+   * Static method to validate CartMandate integrity with default config
+   */
+  static async validateIntegrity(cartMandate: CartMandate): Promise<ValidationResult> {
+    return await CartMandateValidator.withConfig(DEFAULT_VALIDATION_CONFIG).validateIntegrity(cartMandate);
+  }
+
+  /**
+   * Static method to check CartMandate expiry with default config
+   */
+  static async checkExpiry(cartMandate: CartMandate, currentDate = new Date()): Promise<boolean> {
+    return await CartMandateValidator.withConfig(DEFAULT_VALIDATION_CONFIG).checkExpiry(cartMandate, currentDate);
+  }
 }

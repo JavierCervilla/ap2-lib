@@ -207,6 +207,27 @@ export class MandateValidationStrategyRegistry {
 
     return await strategy.checkExpiry(mandate, currentDate);
   }
+
+  /**
+   * Static method to validate a mandate using the default registry
+   */
+  static async validate(mandate: Mandate): Promise<ValidationResult> {
+    return await defaultMandateValidationRegistry.validateMandate(mandate);
+  }
+
+  /**
+   * Static method to validate mandate integrity using the default registry
+   */
+  static async validateIntegrity(mandate: Mandate): Promise<ValidationResult> {
+    return await defaultMandateValidationRegistry.validateMandateIntegrity(mandate);
+  }
+
+  /**
+   * Static method to check mandate expiry using the default registry
+   */
+  static async checkExpiry(mandate: Mandate, currentDate = new Date()): Promise<boolean> {
+    return await defaultMandateValidationRegistry.checkMandateExpiry(mandate, currentDate);
+  }
 }
 
 /**
