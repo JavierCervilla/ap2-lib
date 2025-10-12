@@ -10,8 +10,33 @@ import {
   CryptographicError,
   SignatureVerificationError,
 } from "../utils/mod.ts";
-import { DERSignatureUtils } from "./utils/der-signature.ts";
 import { MandateType, defaultMandateTypeDetector } from "./strategies/mandate-type-detector.ts";
+
+/**
+ * Converts Uint8Array to hex string
+ */
+function uint8ArrayToHex(bytes: Uint8Array): string {
+  return Array.from(bytes)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+/**
+ * Converts hex string to Uint8Array
+ */
+function hexToUint8Array(hex: string): Uint8Array {
+  if (hex.length % 2 !== 0) {
+    throw new Error("Invalid hex string length - must be even");
+  }
+
+  if (!/^[0-9a-fA-F]*$/.test(hex)) {
+    throw new Error("Invalid hex string - contains non-hex characters");
+  }
+
+  return new Uint8Array(
+    hex.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16))
+  );
+}
 
 /**
  * ECDSA Key pair for signing and verification
@@ -132,8 +157,8 @@ export async function signData(data: string, privateKeyHex: string): Promise<ECD
     const rBytes = signature.slice(0, halfLength);
     const sBytes = signature.slice(halfLength);
 
-    const r = DERSignatureUtils.uint8ArrayToHex(rBytes);
-    const s = DERSignatureUtils.uint8ArrayToHex(sBytes);
+    const r = uint8ArrayToHex(rBytes);
+    const s = uint8ArrayToHex(sBytes);
 
     return {
       r: r,
@@ -190,8 +215,8 @@ export async function verifySignature(
     );
 
     // Reconstruct P1363 signature (r||s) from components for Web Crypto API
-    const rBytes = DERSignatureUtils.hexToUint8Array(signature.r);
-    const sBytes = DERSignatureUtils.hexToUint8Array(signature.s);
+    const rBytes = hexToUint8Array(signature.r);
+    const sBytes = hexToUint8Array(signature.s);
     const p1363Signature = new Uint8Array(rBytes.length + sBytes.length);
     p1363Signature.set(rBytes, 0);
     p1363Signature.set(sBytes, rBytes.length);
@@ -225,102 +250,34 @@ export async function verifySignature(
 }
 
 /**
- * Signs a mandate (Intent or Cart) with a private key
+ * Signs data with a private key using ECDSA (legacy function)
  *
- * @param mandate - Mandate to sign
- * @param privateKeyHex - Private key in hex format
- * @returns Promise resolving to signed mandate
- * @throws CryptographicError if signing fails
+ * NOTE: This function is kept for backward compatibility but should not be used
+ * for new mandate types. CartMandates use JWT signing, and IntentMandates are
+ * never signed according to AP2 specification.
+ *
+ * @deprecated Use JWT signing for CartMandate via CartMandateClass.sign()
  */
 export async function signMandate<T extends Mandate>(
   mandate: T,
   privateKeyHex: string
 ): Promise<T & { signature?: string; merchant_authorization?: string }> {
-  // Serialize mandate for signing (deterministic JSON)
-  const mandateData = JSON.stringify(mandate, Object.keys(mandate).sort());
-
-  // Sign the serialized mandate
-  const signature = await signData(mandateData, privateKeyHex);
-
-  // Convert signature to hex string for storage
-  const signatureHex = signature.r + signature.s + signature.v.toString(16).padStart(2, '0');
-
-  // Add signature to appropriate field based on mandate type
-  const mandateType = defaultMandateTypeDetector.detectType(mandate);
-
-  switch (mandateType) {
-    case MandateType.CART:
-      // CartMandate
-      return {
-        ...mandate,
-        merchant_authorization: signatureHex,
-      } as T & { merchant_authorization: string };
-    case MandateType.INTENT:
-      // IntentMandate
-      return {
-        ...mandate,
-        signature: signatureHex,
-      } as T & { signature: string };
-    default:
-      throw new CryptographicError(`Unsupported mandate type: ${mandateType}`);
-  }
+  throw new CryptographicError('signMandate is deprecated. Use CartMandateClass.sign() for JWT-based signing, and note that IntentMandates are never signed according to AP2 specification.');
 }
 
 /**
- * Verifies a signed mandate's signature
+ * Verifies a signed mandate's signature (legacy function)
  *
- * @param mandate - Signed mandate to verify
- * @param publicKeyHex - Public key to verify against
- * @returns Promise resolving to verification result
- * @throws SignatureVerificationError if mandate is not signed
+ * NOTE: This function is kept for backward compatibility but should not be used
+ * for new mandate types. CartMandates use JWT verification, and IntentMandates are
+ * never signed according to AP2 specification.
+ *
+ * @deprecated Use CartMandateClass.verify() for JWT-based verification
  */
 export async function verifyMandateSignature(
   mandate: Mandate & { signature?: string; merchant_authorization?: string },
   publicKeyHex: string
 ): Promise<VerificationResult> {
-  // Extract signature from mandate based on its type
-  const mandateType = defaultMandateTypeDetector.detectType(mandate);
-  let signatureHex: string;
-
-  switch (mandateType) {
-    case MandateType.CART:
-      if (mandate.merchant_authorization) {
-        signatureHex = mandate.merchant_authorization;
-      } else {
-        throw new SignatureVerificationError("CartMandate is not signed (missing merchant_authorization)");
-      }
-      break;
-    case MandateType.INTENT:
-      if (mandate.signature) {
-        signatureHex = mandate.signature;
-      } else {
-        throw new SignatureVerificationError("IntentMandate is not signed (missing signature)");
-      }
-      break;
-    default:
-      throw new SignatureVerificationError(`Unsupported mandate type: ${mandateType}`);
-  }
-
-  // Remove signature from mandate for verification
-  const mandateForVerification = { ...mandate };
-  delete mandateForVerification.signature;
-  delete mandateForVerification.merchant_authorization;
-
-  // Serialize mandate for verification (same as signing)
-  const mandateData = JSON.stringify(mandateForVerification, Object.keys(mandateForVerification).sort());
-
-  // Parse signature hex string back to components
-  // Format: r + s + v (where v is 2 hex chars)
-  const vHex = signatureHex.slice(-2);
-  const rsHex = signatureHex.slice(0, -2);
-  const midpoint = Math.floor(rsHex.length / 2);
-  const r = rsHex.slice(0, midpoint);
-  const s = rsHex.slice(midpoint);
-  const v = parseInt(vHex, 16);
-
-  const signature: ECDSASignature = { r, s, v };
-
-  // Verify signature
-  return await verifySignature(mandateData, signature, publicKeyHex);
+  throw new SignatureVerificationError('verifyMandateSignature is deprecated. Use CartMandateClass.verify() for JWT-based verification, and note that IntentMandates are never signed according to AP2 specification.');
 }
 

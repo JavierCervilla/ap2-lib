@@ -48,17 +48,18 @@ export interface CreateCartMandateParams {
 }
 
 /**
- * Creates a new IntentMandate with validation and optional signing
+ * Creates a new IntentMandate with validation
+ *
+ * Note: IntentMandates are never signed according to AP2 specification.
+ * They represent user purchase intent but do not require cryptographic signatures.
  *
  * @param params - Parameters for creating the mandate
- * @param privateKey - Optional private key to sign the mandate immediately
  * @returns Promise resolving to a new IntentMandateClass instance
  * @throws MandateValidationError if validation fails
  * @throws DateParseError if date format is invalid
  */
 export async function createIntentMandate(
-  params: CreateIntentMandateParams,
-  privateKey?: string
+  params: CreateIntentMandateParams
 ): Promise<IntentMandateClass> {
   // Create mandate data object
   const mandateData: IntentMandate = {
@@ -70,8 +71,8 @@ export async function createIntentMandate(
     intent_expiry: params.intent_expiry,
   };
 
-  // Create and return class instance
-  return await IntentMandateClass.createNew(mandateData, privateKey);
+  // Create and return class instance (IntentMandates are never signed)
+  return await IntentMandateClass.createNew(mandateData);
 }
 
 /**

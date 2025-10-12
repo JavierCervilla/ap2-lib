@@ -7,7 +7,7 @@
 
 import type { IntentMandate, CartMandate, Mandate } from "../types/mod.ts";
 import { MandateValidationError, DateParseError } from "../utils/mod.ts";
-import { signMandate, verifyMandateSignature, type VerificationResult } from "./crypto.ts";
+import { type VerificationResult } from "./crypto.ts";
 import { jwtService, type JWTKeyConfig, type JWTAlgorithm } from "./jwt/mod.ts";
 import { IntentMandateValidator } from "./validation/intent-mandate-validator.ts";
 import { CartMandateValidator } from "./validation/cart-mandate-validator.ts";
@@ -136,10 +136,10 @@ export abstract class BaseMandate<T extends Mandate> {
   }
 
   /**
-   * Check if mandate is signed
+   * Check if mandate is signed (IntentMandate never gets signed)
    */
   isSigned(): boolean {
-    return !!this._signature;
+    return false; // IntentMandate is never signed according to AP2 spec
   }
 
   /**
@@ -167,14 +167,16 @@ export abstract class BaseMandate<T extends Mandate> {
   abstract toString(): string;
 
   /**
-   * Abstract method for signing the mandate
+   * Optional method for signing the mandate (not applicable to all mandate types)
+   * IntentMandates don't implement this, only CartMandates do
    */
-  abstract sign(privateKey: string): Promise<void>;
+  sign?(privateKey: string, ...args: any[]): Promise<void>;
 
   /**
-   * Abstract method for verifying the mandate signature
+   * Optional method for verifying the mandate signature (not applicable to all mandate types)
+   * IntentMandates don't implement this, only CartMandates do
    */
-  abstract verify(publicKey: string): Promise<boolean>;
+  verify?(publicKey: string, ...args: any[]): Promise<boolean>;
 
   /**
    * Abstract method for validation
@@ -207,33 +209,8 @@ export class IntentMandateClass extends BaseMandate<IntentMandate> {
     }
   }
 
-  async sign(privateKey: string): Promise<void> {
-    try {
-      const signedData = await signMandate(this._data, privateKey);
-
-      if ('signature' in signedData) {
-        this._signature = signedData.signature;
-        this._status = 'authorized';
-      }
-    } catch (error) {
-      this._status = 'failed';
-      throw error;
-    }
-  }
-
-  async verify(publicKey: string): Promise<boolean> {
-    if (!this._signature) {
-      return false;
-    }
-
-    try {
-      const mandateWithSignature = { ...this._data, signature: this._signature };
-      const result = await verifyMandateSignature(mandateWithSignature, publicKey);
-      return result.isValid;
-    } catch (error) {
-      return false;
-    }
-  }
+  // IntentMandate does not have signing functionality according to AP2 specification
+  // Only CartMandate has merchant_authorization and PaymentMandate has user_authorization
 
   toString(): string {
     const data = this._data;
@@ -253,7 +230,8 @@ export class IntentMandateClass extends BaseMandate<IntentMandate> {
       description += `Allowed SKUs: ${data.skus.join(', ')}\n`;
     }
 
-    description += `Signed: ${this.isSigned() ? 'Yes' : 'No'}`;
+    // IntentMandate is never signed according to AP2 specification
+    description += `Signed: No (IntentMandates are not signed)`;
 
     return description;
   }
@@ -261,42 +239,24 @@ export class IntentMandateClass extends BaseMandate<IntentMandate> {
   /**
    * Create a new IntentMandate
    */
-  static async createNew(data: IntentMandate, privateKey?: string): Promise<IntentMandateClass> {
+  static async createNew(data: IntentMandate): Promise<IntentMandateClass> {
     const mandate = new IntentMandateClass(data);
 
     // Validate the data
     await mandate.validate();
 
-    // Sign if private key provided
-    if (privateKey) {
-      await mandate.sign(privateKey);
-    }
-
     return mandate;
   }
 
   /**
-   * Create from existing signed mandate
+   * Create from existing IntentMandate data
+   * Note: IntentMandates are never signed according to AP2 specification
    */
-  static async fromSigned(
-    signedMandate: IntentMandate & { signature?: string },
-    publicKey?: string,
-    validateSignature = true
-  ): Promise<IntentMandateClass> {
-    const mandate = new IntentMandateClass(signedMandate, {
-      signature: signedMandate.signature
-    });
+  static async fromData(intentData: IntentMandate): Promise<IntentMandateClass> {
+    const mandate = new IntentMandateClass(intentData);
 
     // Validate the data
     await mandate.validate();
-
-    // Verify signature if required
-    if (publicKey && validateSignature) {
-      const isValid = await mandate.verify(publicKey);
-      if (!isValid) {
-        throw new MandateValidationError("Invalid signature");
-      }
-    }
 
     return mandate;
   }
@@ -338,7 +298,7 @@ export class CartMandateClass extends BaseMandate<CartMandate> {
    * @param keyConfig - Optional JWT key configuration (defaults to RS256)
    * @param merchantInfo - Merchant information for JWT payload
    */
-  async sign(
+  override async sign(
     privateKey: string,
     keyConfig?: Partial<JWTKeyConfig>,
     merchantInfo?: {
@@ -393,7 +353,7 @@ export class CartMandateClass extends BaseMandate<CartMandate> {
    * @param expectedMerchantId - Expected merchant ID for validation
    * @param expectedAudience - Expected audience for validation
    */
-  async verify(
+  override async verify(
     publicKey: string,
     keyConfig?: Partial<JWTKeyConfig>,
     expectedMerchantId?: string,
@@ -540,15 +500,8 @@ export async function createMandateClass(
 
   switch (mandateType) {
     case MandateType.INTENT:
-      if ('signature' in (mandate as any)) {
-        return IntentMandateClass.fromSigned(
-          mandate as IntentMandate & { signature?: string },
-          options?.publicKey,
-          options?.validateSignature
-        );
-      } else {
-        return IntentMandateClass.createNew(mandate as IntentMandate, options?.privateKey);
-      }
+      // IntentMandates are never signed according to AP2 specification
+      return IntentMandateClass.createNew(mandate as IntentMandate);
 
     case MandateType.CART:
       if ('merchant_authorization' in (mandate as any)) {
