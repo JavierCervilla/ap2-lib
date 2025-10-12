@@ -139,132 +139,33 @@ Deno.test("verifySignature - Should reject malformed signature", async () => {
   );
 });
 
-Deno.test("signMandate - Signs IntentMandate", async () => {
+// signMandate test for IntentMandate removed - IntentMandates are never signed according to AP2 specification
+
+// signMandate test for CartMandate removed - Use CartMandateClass.sign() with JWT instead
+
+// verifyMandateSignature test for IntentMandate removed - IntentMandates are never signed according to AP2 specification
+
+Deno.test("Deprecated signMandate and verifyMandateSignature functions", async () => {
   const keyPair = await generateKeyPair();
   const intentMandate: IntentMandate = {
-    user_cart_confirmation_required: true,
-    natural_language_description: "Test product for signing",
+    natural_language_description: "Test mandate",
     intent_expiry: createFutureISO8601(TIME_CONSTANTS.DAY),
   };
 
-  const signedMandate = await signMandate(intentMandate, keyPair.privateKey);
-
-  assertEquals(signedMandate.natural_language_description, intentMandate.natural_language_description);
-  assertEquals(signedMandate.intent_expiry, intentMandate.intent_expiry);
-  assert(signedMandate.signature, "Signed mandate should have signature");
-
-  // Signature should be hex string
-  assert(/^[0-9a-fA-F]+$/.test(signedMandate.signature), "Signature should be hex");
-});
-
-Deno.test("signMandate - Signs CartMandate", async () => {
-  const keyPair = await generateKeyPair();
-  const cartMandate: CartMandate = {
-    contents: {
-      id: "cart_test_123",
-      user_cart_confirmation_required: false,
-      payment_request: {
-        id: "payment-456",
-        methodData: [{ supportedMethods: "basic-card" }],
-        details: {
-          total: {
-            label: "Total",
-            amount: { currency: "USD", value: "99.99" },
-            refund_period: 30,
-          },
-        },
-      },
-      cart_expiry: createFutureISO8601(TIME_CONSTANTS.HOUR * 2),
-      merchant_name: "Test Merchant",
+  // Test that deprecated functions throw appropriate errors
+  await assertRejects(
+    async () => {
+      await signMandate(intentMandate, keyPair.privateKey);
     },
-  };
-
-  const signedMandate = await signMandate(cartMandate, keyPair.privateKey);
-
-  assertEquals(signedMandate.contents.id, cartMandate.contents.id);
-  assert(signedMandate.merchant_authorization, "Cart mandate should have merchant authorization");
-
-  // Authorization should be hex string
-  assert(/^[0-9a-fA-F]+$/.test(signedMandate.merchant_authorization),
-         "Authorization should be hex");
-});
-
-Deno.test("verifyMandateSignature - Verifies signed IntentMandate", async () => {
-  const keyPair = await generateKeyPair();
-  const intentMandate: IntentMandate = {
-    user_cart_confirmation_required: false,
-    natural_language_description: "Product for verification test",
-    intent_expiry: createFutureISO8601(TIME_CONSTANTS.WEEK),
-  };
-
-  const signedMandate = await signMandate(intentMandate, keyPair.privateKey);
-  const result = await verifyMandateSignature(signedMandate, keyPair.publicKey);
-
-  assert(result.isValid, "Valid signed mandate should verify");
-  assertEquals(result.error, undefined);
-});
-
-Deno.test("verifyMandateSignature - Verifies signed CartMandate", async () => {
-  const keyPair = await generateKeyPair();
-  const cartMandate: CartMandate = {
-    contents: {
-      id: "cart_verify_789",
-      user_cart_confirmation_required: true,
-      payment_request: {
-        id: "payment-789",
-        methodData: [{ supportedMethods: "basic-card" }],
-        details: {
-          total: {
-            label: "Total",
-            amount: { currency: "USD", value: "199.99" },
-            refund_period: 14,
-          },
-        },
-      },
-      cart_expiry: createFutureISO8601(TIME_CONSTANTS.DAY),
-      merchant_name: "Verification Store",
-    },
-  };
-
-  const signedMandate = await signMandate(cartMandate, keyPair.privateKey);
-  const result = await verifyMandateSignature(signedMandate, keyPair.publicKey);
-
-  assert(result.isValid, "Valid signed cart mandate should verify");
-  assertEquals(result.error, undefined);
-});
-
-Deno.test("verifyMandateSignature - Detects tampered mandate", async () => {
-  const keyPair = await generateKeyPair();
-  const intentMandate: IntentMandate = {
-    natural_language_description: "Original description",
-    intent_expiry: createFutureISO8601(TIME_CONSTANTS.DAY),
-  };
-
-  const signedMandate = await signMandate(intentMandate, keyPair.privateKey);
-
-  // Tamper with the mandate after signing
-  const tamperedMandate = {
-    ...signedMandate,
-    natural_language_description: "Tampered description", // Changed!
-  };
-
-  const result = await verifyMandateSignature(tamperedMandate, keyPair.publicKey);
-
-  assert(!result.isValid, "Tampered mandate should fail verification");
-  assert(result.error, "Should provide error describing tampering");
-});
-
-Deno.test("verifyMandateSignature - Rejects unsigned mandate", async () => {
-  const keyPair = await generateKeyPair();
-  const unsignedMandate: IntentMandate = {
-    natural_language_description: "Unsigned mandate",
-    intent_expiry: createFutureISO8601(TIME_CONSTANTS.DAY),
-    // No signature field
-  };
+    CryptographicError,
+    "signMandate is deprecated"
+  );
 
   await assertRejects(
-    () => verifyMandateSignature(unsignedMandate, keyPair.publicKey),
+    async () => {
+      await verifyMandateSignature(intentMandate, keyPair.publicKey);
+    },
     SignatureVerificationError,
-    "Mandate is not signed"
+    "verifyMandateSignature is deprecated"
   );
 });

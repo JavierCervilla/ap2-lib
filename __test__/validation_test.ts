@@ -638,3 +638,63 @@ Deno.test("validateMandateIntegrity - IntentMandate with partial fields", async 
   );
   assert(hasRelevantError, `Should mention missing fields, got errors: ${result.errors.join(', ')}`);
 });
+
+// Import additional modules for coverage improvement
+import { FieldValidator } from "../src/core/utils/field-validator.ts";
+import { MANDATE_MESSAGES, CART_MESSAGES } from "../src/core/config/validation-messages.ts";
+
+Deno.test("FieldValidator - String validation methods", () => {
+  const config = { allowWhitespaceOnly: false };
+
+  // Test validateRequiredString
+  const validResult = FieldValidator.validateRequiredString("test", "testField", config);
+  assertEquals(validResult.isValid, true);
+  assertEquals(validResult.error, undefined);
+
+  const emptyResult = FieldValidator.validateRequiredString("", "testField", config);
+  assertEquals(emptyResult.isValid, false);
+  assert(emptyResult.error?.includes("testField"));
+
+  const nullResult = FieldValidator.validateRequiredString(null, "testField", config);
+  assertEquals(nullResult.isValid, false);
+  assert(nullResult.error?.includes("testField"));
+
+  const whitespaceResult = FieldValidator.validateRequiredString("   ", "testField", config);
+  assertEquals(whitespaceResult.isValid, false);
+  assert(whitespaceResult.error?.includes("testField"));
+});
+
+Deno.test("Validation messages - Message constants", () => {
+  // Test mandate messages exist and have reasonable content
+  assert(typeof MANDATE_MESSAGES.EMPTY_DESCRIPTION === "string");
+  assert(typeof MANDATE_MESSAGES.INVALID_DATE_FORMAT === "string");
+  assert(typeof MANDATE_MESSAGES.EXPIRED_MANDATE === "string");
+
+  assert(MANDATE_MESSAGES.EMPTY_DESCRIPTION.includes("empty"));
+  assert(MANDATE_MESSAGES.INVALID_DATE_FORMAT.includes("date"));
+  assert(MANDATE_MESSAGES.EXPIRED_MANDATE.includes("expired"));
+
+  // Test cart messages exist and have reasonable content
+  assert(typeof CART_MESSAGES.EMPTY_ID === "string");
+  assert(typeof CART_MESSAGES.EMPTY_MERCHANT_NAME === "string");
+  assert(CART_MESSAGES.EMPTY_ID.includes("empty"));
+  assert(CART_MESSAGES.EMPTY_MERCHANT_NAME.includes("empty"));
+});
+
+Deno.test("Validation functions - Edge cases with null/undefined", async () => {
+  // Test validateMandateIntegrity with null/undefined (async functions)
+  const nullIntegrityResult = await validateMandateIntegrity(null as any);
+  assertEquals(nullIntegrityResult.isValid, false);
+
+  const undefinedIntegrityResult = await validateMandateIntegrity(undefined as any);
+  assertEquals(undefinedIntegrityResult.isValid, false);
+
+  // Test checkMandateExpiry with unknown mandate type (async function)
+  const unknownMandate = { unknown_field: "test" } as any;
+  const expiryResult = await checkMandateExpiry(unknownMandate);
+  assertEquals(expiryResult, false);
+
+  // Test validateMandate with edge cases (async)
+  const unknownMandateResult = await validateMandate(unknownMandate);
+  assertEquals(unknownMandateResult.isValid, false);
+});

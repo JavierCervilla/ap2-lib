@@ -43,36 +43,9 @@ Deno.test("IntentMandateClass - Create new mandate", async () => {
   assertExists(mandate.getCreatedAt());
 });
 
-Deno.test("IntentMandateClass - Sign mandate", async () => {
-  const futureDate = createFutureISO8601(TIME_CONSTANTS.DAY);
-  const keyPair = await generateKeyPair();
-  const intentData: IntentMandate = {
-    natural_language_description: "Wireless noise-canceling headphones",
-    intent_expiry: futureDate,
-  };
+// IntentMandate signing test removed - IntentMandates are never signed according to AP2 specification
 
-  const mandate = await IntentMandateClass.createNew(intentData);
-  await mandate.sign(keyPair.privateKey);
-
-  assertEquals(mandate.getStatus(), 'authorized');
-  assertEquals(mandate.isSigned(), true);
-  assertExists(mandate.getSignature());
-});
-
-Deno.test("IntentMandateClass - Verify signature", async () => {
-  const futureDate = createFutureISO8601(TIME_CONSTANTS.DAY);
-  const keyPair = await generateKeyPair();
-  const intentData: IntentMandate = {
-    natural_language_description: "Organic coffee beans, medium roast",
-    intent_expiry: futureDate,
-  };
-
-  const mandate = await IntentMandateClass.createNew(intentData);
-  await mandate.sign(keyPair.privateKey);
-
-  const isValid = await mandate.verify(keyPair.publicKey);
-  assertEquals(isValid, true);
-});
+// IntentMandate verification test removed - IntentMandates are never signed according to AP2 specification
 
 Deno.test("IntentMandateClass - toString method", async () => {
   const futureDate = createFutureISO8601(TIME_CONSTANTS.DAY);
@@ -92,7 +65,7 @@ Deno.test("IntentMandateClass - toString method", async () => {
   assert(stringRep.includes("dell.com, hp.com"));
   assert(stringRep.includes("DELL-G15, HP-OMEN"));
   assert(stringRep.includes("Requires Refundability: true"));
-  assert(stringRep.includes("Signed: No"));
+  assert(stringRep.includes("Signed: No (IntentMandates are not signed)"));
 });
 
 Deno.test("IntentMandateClass - toJSON method", async () => {
@@ -231,18 +204,17 @@ Deno.test("CartMandateClass - toString method", async () => {
   assert(stringRep.includes("Signed: No"));
 });
 
-Deno.test("createIntentMandate factory function with signing", async () => {
+Deno.test("createIntentMandate factory function", async () => {
   const futureDate = createFutureISO8601(TIME_CONSTANTS.WEEK);
-  const keyPair = await generateKeyPair();
 
   const mandate = await createIntentMandate({
     natural_language_description: "Factory created intent mandate",
     intent_expiry: futureDate,
     requires_refundability: true,
-  }, keyPair.privateKey);
+  });
 
-  assertEquals(mandate.getStatus(), 'authorized');
-  assertEquals(mandate.isSigned(), true);
+  assertEquals(mandate.getStatus(), 'pending');
+  assertEquals(mandate.isSigned(), false); // IntentMandates are never signed
   assertEquals(mandate.getData().natural_language_description, "Factory created intent mandate");
   assertEquals(mandate.getData().requires_refundability, true);
 });
@@ -282,18 +254,17 @@ Deno.test("createCartMandate factory function with signing", async () => {
 
 Deno.test("createMandateClass generic factory", async () => {
   const futureDate = createFutureISO8601(TIME_CONSTANTS.DAY);
-  const keyPairECDSA = await generateKeyPair(); // For IntentMandate (still uses ECDSA)
-  const keyPairJWT = await jwtService.generateKeyPair('RS256'); // For CartMandate (uses JWT)
 
-  // Test with IntentMandate (still uses ECDSA)
+  // Test with IntentMandate (never signed according to AP2 specification)
   const intentData: IntentMandate = {
     natural_language_description: "Generic factory intent test",
     intent_expiry: futureDate,
   };
 
-  const intentMandate = await createMandateClass(intentData, { privateKey: keyPairECDSA.privateKey });
+  const intentMandate = await createMandateClass(intentData);
   assert(intentMandate instanceof IntentMandateClass);
   assertEquals(intentMandate.getData().natural_language_description, "Generic factory intent test");
+  assertEquals(intentMandate.isSigned(), false); // IntentMandates are never signed
 
   // Test with CartMandate (without signing for now to avoid complexity)
   const cartData: CartMandate = {
