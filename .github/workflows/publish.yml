@@ -38,8 +38,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
-          cache-dependency-path: "**/package-lock.json"
 
       - name: 🔍 Cache Deno dependencies
         uses: actions/cache@v4
@@ -85,6 +83,9 @@ jobs:
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     needs: build
     runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release_info.outputs.release_created }}
+      new_version: ${{ steps.release_info.outputs.new_version }}
     permissions:
       contents: write
       issues: write
@@ -135,16 +136,15 @@ jobs:
       - name: 📖 Get release info
         id: release_info
         run: |
-          if [ -f .semantic-release-nextrelease.json ]; then
-            VERSION=$(cat .semantic-release-nextrelease.json | jq -r '.version // empty')
-            if [ ! -z "$VERSION" ]; then
-              echo "new_version=$VERSION" >> $GITHUB_OUTPUT
-              echo "release_created=true" >> $GITHUB_OUTPUT
-            else
-              echo "release_created=false" >> $GITHUB_OUTPUT
-            fi
+          # Check if semantic-release created a new tag
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ ! -z "$LATEST_TAG" ] && [ "$LATEST_TAG" != "$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")" ]; then
+            echo "new_version=${LATEST_TAG#v}" >> $GITHUB_OUTPUT
+            echo "release_created=true" >> $GITHUB_OUTPUT
+            echo "✅ New release created: $LATEST_TAG"
           else
             echo "release_created=false" >> $GITHUB_OUTPUT
+            echo "ℹ️ No new release created"
           fi
 
   # Publish to JSR (after semantic release)
