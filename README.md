@@ -1,6 +1,6 @@
 # 🤖 AP2-lib - Agent Payments Protocol Library
 
-[![Version](https://img.shields.io/badge/version-0.0.0-blue.svg)](https://deno.land/x/ap2_lib)
+[![Version](https://img.shields.io/badge/version-0.0.0-blue.svg)](https://jsr.io/@xja77/ap2-lib)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Deno](https://img.shields.io/badge/deno-2.0+-black.svg)](https://deno.land)
 [![JSR](https://img.shields.io/badge/JSR-@xja77/ap2--lib-yellow.svg)](https://jsr.io/@xja77/ap2-lib)
@@ -439,7 +439,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 <div align="center">
 
-**[Documentation](https://deno.land/x/ap2_lib) • [API Reference](#-api-documentation) • [Examples](#-quick-start) • [Contributing](#-contributing)**
+**[Documentation](https://jsr.io/@xja77/ap2-lib) • [API Reference](#-api-documentation) • [Examples](#-quick-start) • [Contributing](#-contributing)**
 
 Made with ❤️ for the autonomous commerce future
 
