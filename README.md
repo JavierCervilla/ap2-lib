@@ -37,7 +37,7 @@ deno add @xja77/ap2-lib
 ### Via npm
 
 ```bash
-npm install @xja77/ap2-lib
+npm install ap2-lib
 ```
 
 ### Via Deno import
