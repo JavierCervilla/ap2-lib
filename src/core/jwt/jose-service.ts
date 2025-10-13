@@ -33,6 +33,12 @@ import {
   type IChecksumValidator
 } from './checksum-validator.ts';
 
+import {
+  KeyManagementError,
+  JWTSigningError,
+} from './errors.ts';
+
+
 /**
  * JOSE-based JWT Signer Implementation
  * Follows Single Responsibility Principle (SRP)
@@ -43,18 +49,15 @@ export class JOSEJWTSigner implements IJWTSigner {
     options: JWTSignOptions
   ): Promise<string> {
     try {
-      // Import private key
       const privateKey = await this.importPrivateKey(
         options.keyConfig.privateKey,
         options.keyConfig.algorithm
       );
 
-      // Generate JWT ID for replay attack prevention
-      const jti = await this.generateJTI();
+      const jti = this.generateJTI();
       const now = Math.floor(Date.now() / 1000);
-      const expiresIn = options.expiresIn || 900; // Default 15 minutes
+      const expiresIn = options.expiresIn || 900;
 
-      // Build complete payload
       const completePayload = {
         ...payload,
         iat: now,
@@ -63,7 +66,6 @@ export class JOSEJWTSigner implements IJWTSigner {
         ...options.additionalClaims
       } as jose.JWTPayload;
 
-      // Create JWT
       const jwt = await new jose.SignJWT(completePayload)
         .setProtectedHeader({
           alg: options.keyConfig.algorithm,
@@ -73,25 +75,25 @@ export class JOSEJWTSigner implements IJWTSigner {
 
       return jwt;
     } catch (error) {
-      throw new Error(`Failed to sign JWT: ${error instanceof Error ? error.message : String(error)}`);
+      throw new JWTSigningError('Failed to sign JWT', { cause: error });
     }
   }
 
   private async importPrivateKey(privateKey: string, algorithm: JWTAlgorithm): Promise<CryptoKey> {
     try {
+      // Primero intentar como PEM, que es común para RSA
       return await jose.importPKCS8(privateKey, algorithm);
     } catch {
-      // Try importing as JWK if PKCS8 fails
       try {
+        // Si falla, intentar como JWK, que usaremos para EC
         return await jose.importJWK(JSON.parse(privateKey), algorithm) as CryptoKey;
-      } catch {
-        throw new Error('Invalid private key format. Expected PKCS8 PEM or JWK JSON.');
+      } catch (error) {
+        throw new KeyManagementError('Invalid private key format. Expected PKCS8 PEM or JWK JSON.', { cause: error });
       }
     }
   }
 
   private generateJTI(): string {
-    // Use Web Crypto API for web-friendly random generation
     const randomBytes = crypto.getRandomValues(new Uint8Array(16));
     return bytesToHex(randomBytes);
   }
@@ -105,7 +107,7 @@ export class JOSEJWTVerifier implements IJWTVerifier {
   constructor(
     private jtiValidator: IJTIValidator = defaultJTIValidator,
     private checksumValidator: IChecksumValidator = defaultChecksumValidator
-  ) {}
+  ) { }
 
   async verifyMerchantAuthorization(
     jwt: string,
@@ -121,13 +123,11 @@ export class JOSEJWTVerifier implements IJWTVerifier {
     };
 
     try {
-      // Import public key
       const publicKey = await this.importPublicKey(
         options.keyConfig.publicKey,
         options.keyConfig.algorithm
       );
 
-      // Basic JWT verification (signature + standard claims)
       let jwtVerifyResult;
       try {
         jwtVerifyResult = await jose.jwtVerify(jwt, publicKey, {
@@ -139,25 +139,23 @@ export class JOSEJWTVerifier implements IJWTVerifier {
       } catch (jwtError) {
         const errorMessage = jwtError instanceof Error ? jwtError.message : String(jwtError);
         result.signatureValid = false;
-        result.expired = errorMessage.includes('expired') || errorMessage.includes('exp');
+        result.expired = errorMessage.includes('exp');
         result.error = errorMessage;
         result.validationErrors!.push(`JWT verification failed: ${errorMessage}`);
-
-        // Return early if basic JWT verification fails
         return result;
       }
 
-      // Validate payload structure
       let merchantPayload: MerchantAuthorizationPayload;
       try {
         merchantPayload = this.validateMerchantPayload(jwtVerifyResult.payload);
         result.payload = merchantPayload;
       } catch (payloadError) {
-        result.validationErrors!.push(`Payload validation failed: ${payloadError instanceof Error ? payloadError.message : String(payloadError)}`);
+        const errorMessage = payloadError instanceof Error ? payloadError.message : String(payloadError);
+        result.validationErrors!.push(`Payload validation failed: ${errorMessage}`);
+        result.error = result.validationErrors![0];
         return result;
       }
 
-      // Enhanced JTI validation for replay attack prevention
       const jtiValidationResult = await this.jtiValidator.validateJTI(merchantPayload);
       result.jtiValid = jtiValidationResult.valid;
 
@@ -167,17 +165,14 @@ export class JOSEJWTVerifier implements IJWTVerifier {
           result.validationErrors!.push('SECURITY ALERT: Potential replay attack detected');
         }
       } else {
-        // Mark JTI as used if validation passes
         try {
           await this.jtiValidator.markJTIAsUsed(merchantPayload);
         } catch (markError) {
-          result.validationErrors!.push(`Failed to mark JTI as used: ${markError instanceof Error ? markError.message : String(markError)}`);
+          const errorMessage = markError instanceof Error ? markError.message : String(markError);
+          result.validationErrors!.push(`Failed to mark JTI as used: ${errorMessage}`);
         }
       }
 
-      // Comprehensive checksum validation
-      // Note: Cart contents validation is handled at a higher level in CartMandateClass
-      // Here we validate the JWT structure and components
       const checksumResult = await this.checksumValidator.validateJWTComponents(jwt);
       const checksumValid = checksumResult.every(component => component.valid);
       result.checksumValid = checksumValid;
@@ -190,11 +185,9 @@ export class JOSEJWTVerifier implements IJWTVerifier {
         result.validationErrors!.push(`Checksum validation failed: ${checksumErrors}`);
       }
 
-      // Overall validation result
       result.valid = result.signatureValid && result.jtiValid && result.checksumValid;
 
-      // Set final error message if validation failed
-      if (!result.valid) {
+      if (!result.valid && !result.error) {
         result.error = result.validationErrors!.length > 0
           ? result.validationErrors![0]
           : 'Comprehensive JWT validation failed';
@@ -210,25 +203,18 @@ export class JOSEJWTVerifier implements IJWTVerifier {
     }
   }
 
-  /**
-   * Verify JWT with cart contents for complete integrity validation
-   * This method provides the highest level of security validation
-   */
   async verifyWithCartContents(
     jwt: string,
     options: JWTVerifyOptions,
     expectedCartContents: unknown
   ): Promise<JWTVerificationResult> {
-    // First perform standard verification
     const result = await this.verifyMerchantAuthorization(jwt, options);
 
-    // If basic verification failed, return early
     if (!result.valid || !result.payload) {
       return result;
     }
 
     try {
-      // Perform comprehensive checksum validation including cart contents
       const checksumResult = await this.checksumValidator.validateJWTChecksums(
         jwt,
         expectedCartContents,
@@ -260,24 +246,21 @@ export class JOSEJWTVerifier implements IJWTVerifier {
     try {
       return await jose.importSPKI(publicKey, algorithm);
     } catch {
-      // Try importing as JWK if SPKI fails
       try {
         return await jose.importJWK(JSON.parse(publicKey), algorithm) as CryptoKey;
-      } catch {
-        throw new Error('Invalid public key format. Expected SPKI PEM or JWK JSON.');
+      } catch (error) {
+        throw new KeyManagementError('Invalid public key format. Expected SPKI PEM or JWK JSON.', { cause: error });
       }
     }
   }
 
   private validateMerchantPayload(payload: jose.JWTPayload): MerchantAuthorizationPayload {
-    // Validate required fields
     const requiredFields = ['iss', 'sub', 'aud', 'iat', 'exp', 'jti', 'cart_hash'];
     for (const field of requiredFields) {
       if (!(field in payload)) {
         throw new Error(`Missing required field: ${field}`);
       }
     }
-
     return payload as unknown as MerchantAuthorizationPayload;
   }
 }
@@ -290,45 +273,53 @@ export class JOSEJWTKeyManager implements IJWTKeyManager {
   async generateKeyPair(algorithm: JWTAlgorithm): Promise<JWTKeyConfig> {
     try {
       let keyPair: jose.GenerateKeyPairResult;
+      const options = { extractable: true };
 
-      // Generate key pair based on algorithm family
+      let privateKey: string;
+      let publicKey: string;
+      let keyIdSource: string;
+
       if (algorithm.startsWith('RS')) {
-        keyPair = await jose.generateKeyPair('RS256', { modulusLength: 2048, extractable: true });
-      } else if (algorithm.startsWith('ES')) {
+        keyPair = await jose.generateKeyPair('RS256', { modulusLength: 2048, ...options });
+        privateKey = await jose.exportPKCS8(keyPair.privateKey);
+        publicKey = await jose.exportSPKI(keyPair.publicKey);
+        keyIdSource = publicKey;
+      } else if (algorithm === 'ES256' || algorithm === 'ES384') {
         const curve = algorithm === 'ES256' ? 'P-256' :
-                     algorithm === 'ES384' ? 'P-384' : 'P-521';
-        keyPair = await jose.generateKeyPair(algorithm, { crv: curve, extractable: true });
+          algorithm === 'ES384' ? 'P-384' : 'P-521';
+        keyPair = await jose.generateKeyPair(algorithm, { crv: curve, ...options });
+        // FINAL CORRECTION: Export EC keys to JWK format as strings to avoid Deno runtime bug
+        privateKey = JSON.stringify(await jose.exportJWK(keyPair.privateKey));
+        publicKey = JSON.stringify(await jose.exportJWK(keyPair.publicKey));
+        keyIdSource = publicKey; // keyId can be derived from the JWK string
+      } else if (algorithm === 'ES512') {
+        throw new KeyManagementError(`Algorithm ${algorithm} is not supported due to Deno runtime limitations on P-521 curve export.`);
       } else {
-        throw new Error(`Unsupported algorithm: ${algorithm}`);
+        throw new KeyManagementError(`Unsupported algorithm: ${algorithm}`);
       }
 
-      // Export keys
-      const privateKey = await jose.exportPKCS8(keyPair.privateKey);
-      const publicKey = await jose.exportSPKI(keyPair.publicKey);
-
-      // Generate key ID using web-friendly approach
-      const keyId = bytesToHex(sha256(new TextEncoder().encode(publicKey))).substring(0, 8);
+      const keyId = bytesToHex(sha256(new TextEncoder().encode(keyIdSource))).substring(0, 8);
 
       return {
         privateKey,
         publicKey,
         algorithm,
-        keyId
+        keyId,
+        _privateCryptoKey: keyPair.privateKey,
+        _publicCryptoKey: keyPair.publicKey,
       };
     } catch (error) {
-      throw new Error(`Failed to generate key pair: ${error instanceof Error ? error.message : String(error)}`);
+      if (error instanceof KeyManagementError) throw error;
+      throw new KeyManagementError('Failed to generate key pair', { cause: error });
     }
   }
 
   async validateKeyConfig(keyConfig: JWTKeyConfig): Promise<boolean> {
     try {
-      // Try to import both keys
       const signer = new JOSEJWTSigner();
       const verifier = new JOSEJWTVerifier();
-
       await signer['importPrivateKey'](keyConfig.privateKey, keyConfig.algorithm);
       await verifier['importPublicKey'](keyConfig.publicKey, keyConfig.algorithm);
-
       return true;
     } catch {
       return false;
@@ -345,7 +336,7 @@ export class JOSEJWTService implements IJWTService {
     private signer: IJWTSigner = new JOSEJWTSigner(),
     public verifier: IJWTVerifier = new JOSEJWTVerifier(),
     private keyManager: IJWTKeyManager = new JOSEJWTKeyManager()
-  ) {}
+  ) { }
 
   signMerchantAuthorization(
     payload: Omit<MerchantAuthorizationPayload, 'iat' | 'exp' | 'jti'>,
@@ -362,7 +353,6 @@ export class JOSEJWTService implements IJWTService {
   }
 
   generateJTI(): string {
-    // Use Web Crypto API for web-friendly random generation
     const randomBytes = crypto.getRandomValues(new Uint8Array(16));
     return bytesToHex(randomBytes);
   }
@@ -372,7 +362,6 @@ export class JOSEJWTService implements IJWTService {
     return cartHash;
   }
 
-  // Delegate key management operations
   generateKeyPair(algorithm: JWTAlgorithm): Promise<JWTKeyConfig> {
     return this.keyManager.generateKeyPair(algorithm);
   }

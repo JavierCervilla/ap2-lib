@@ -47,3 +47,5 @@ export {
   type JWTComponentValidation,
   type CartCanonicalizationOptions
 } from './checksum-validator.ts';
+
+export * from './errors.ts';

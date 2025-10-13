@@ -122,9 +122,24 @@ export class MemoryJTIStorage implements IJTIStorage {
   async store(entry: JTIEntry): Promise<void> {
     const key = `${entry.issuer}:${entry.jti}`;
 
-    // Prevent storage overflow
     if (this.storage.size >= this.maxSize) {
       await this.cleanup();
+
+      while (this.storage.size >= this.maxSize) {
+        let oldestKey: string | null = null;
+        let oldestTime = Infinity;
+        for (const [currentKey, currentEntry] of this.storage.entries()) {
+          if (currentEntry.createdAt < oldestTime) {
+            oldestTime = currentEntry.createdAt;
+            oldestKey = currentKey;
+          }
+        }
+        if (oldestKey) {
+          this.storage.delete(oldestKey);
+        } else {
+          break;
+        }
+      }
     }
 
     this.storage.set(key, entry);
@@ -258,7 +273,7 @@ export class JTIValidator implements IJTIValidator {
   }
 
   async markJTIAsUsed(payload: MerchantAuthorizationPayload): Promise<void> {
-    if (!payload.jti || !payload.iss || !payload.exp) {
+    if (payload.jti == null || payload.iss == null || payload.exp == null) {
       throw new SignatureVerificationError('Invalid payload: missing required fields for JTI tracking');
     }
 

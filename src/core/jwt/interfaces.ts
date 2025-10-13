@@ -42,6 +42,9 @@ export interface JWTKeyConfig {
   algorithm: JWTAlgorithm;
   /** Key ID for identifying the key */
   keyId?: string;
+  /** Optional CryptoKey objects for internal use */
+  _privateCryptoKey?: CryptoKey;
+  _publicCryptoKey?: CryptoKey;
 }
 
 /**

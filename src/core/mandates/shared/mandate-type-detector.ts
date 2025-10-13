@@ -116,12 +116,13 @@ export class MandateTypeDetectorRegistry {
     }
 
     // Check for mixed mandate types (should be UNKNOWN)
-    const hasIntentFields = 'natural_language_description' in mandate && 'intent_expiry' in mandate;
-    const hasCartFields = 'contents' in mandate;
-    const hasPaymentFields = 'payment_mandate_contents' in mandate;
+    const hasIntentField = 'natural_language_description' in mandate || 'intent_expiry' in mandate;
+    const hasCartField = 'contents' in mandate;
+    const hasPaymentField = 'payment_mandate_contents' in mandate;
+
 
     // Count how many mandate types are detected
-    const typesDetected = [hasIntentFields, hasCartFields, hasPaymentFields].filter(Boolean).length;
+    const typesDetected = [hasIntentField, hasCartField, hasPaymentField].filter(Boolean).length;
 
     // If multiple mandate types detected, return UNKNOWN (conflicting fields)
     if (typesDetected > 1) {
@@ -129,15 +130,17 @@ export class MandateTypeDetectorRegistry {
     }
 
     // Single mandate type detection
-    if (hasIntentFields) {
-      return MandateType.INTENT;
+    if (hasIntentField) {
+      if ('natural_language_description' in mandate && 'intent_expiry' in mandate) {
+        return MandateType.INTENT;
+      }
     }
 
-    if (hasCartFields) {
+    if (hasCartField) {
       return MandateType.CART;
     }
 
-    if (hasPaymentFields) {
+    if (hasPaymentField) {
       return MandateType.PAYMENT;
     }
 

@@ -1,4 +1,3 @@
- 
 /**
  * CartMandate Validator Test Suite
  *

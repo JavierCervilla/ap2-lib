@@ -51,6 +51,9 @@ export class CartMandateClass extends BaseMandate<CartMandate> {
     merchantInfo: { merchantId: string }
   ): Promise<void> {
     try {
+      if (this.isSigned()) {
+        throw new MandateValidationError("Mandate is already signed.");
+      }
       const payload = {
         iss: merchantInfo.merchantId,
         sub: merchantInfo.merchantId,
