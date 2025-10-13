@@ -40,23 +40,23 @@ async function main() {
             skipLibCheck: true
         },
         postBuild: () => {
-            console.log("📄 Copiando archivos adicionales...");
+            console.log("📄 Copying additional files...");
             try {
                 Deno.copyFileSync("LICENSE", "npm/LICENSE");
-                console.log("✅ LICENSE copiado");
+                console.log("✅ LICENSE copied");
             } catch {
-                console.log("⚠️ LICENSE no encontrado, saltando...");
+                console.log("⚠️ LICENSE not found, skipping...");
             }
             try {
                 Deno.copyFileSync("README.md", "npm/README.md");
-                console.log("✅ README.md copiado");
+                console.log("✅ README.md copied");
             } catch {
-                console.log("⚠️ README.md no encontrado, saltando...");
+                console.log("⚠️ README.md not found, skipping...");
             }
         }
     });
 
-    console.log("✅ Build completado. Ahora puedes publicar en NPM.");
+    console.log("✅ Build completed. You can now publish to NPM.");
 }
 
 main();

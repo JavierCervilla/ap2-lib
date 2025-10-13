@@ -72,7 +72,7 @@ NPM_TOKEN=npm_xxxxxxxxxxxxxxxx
 ### 2. **JSR Package Linking**
 1. Go to [jsr.io](https://jsr.io/@xja77/ap2-lib)
 2. Navigate to package settings
-3. Link to GitHub repository: `xja77/ap2-lib`
+3. Link to GitHub repository: `javiercervilla/ap2-lib`
 4. Save configuration
 
 ### 3. **Repository Permissions**

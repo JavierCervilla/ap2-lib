@@ -51,7 +51,7 @@ const isValid = await cart.verifySignature();
 
 ## 🔗 Additional Resources
 
-- **[GitHub Repository](https://github.com/xja77/ap2-lib)** - Source code and issues
+- **[GitHub Repository](https://github.com/javiercervilla/ap2-lib)** - Source code and issues
 - **[JSR Package](https://jsr.io/@xja77/ap2-lib)** - Official package registry
 - **[Deno.land](https://deno.land/x/ap2_lib)** - Deno package listing
 - **[Main README](../README.md)** - Getting started guide
