@@ -9,7 +9,8 @@
     ]
   },
   "tasks": {
-    "dev": "deno run --watch src/main.ts",
+    "dev": "deno run --watch src/mod.ts",
+    "check": "deno check --config deno.jsonc src/mod.ts",
     "test": "deno test --config deno.jsonc --allow-net --allow-read --coverage=coverage",
     "coverage": "deno coverage coverage",
     "coverage:clean": "rm -rf coverage",

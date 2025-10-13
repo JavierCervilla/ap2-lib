@@ -1,4 +1,4 @@
-/// <reference types="../src/types/deno.d.ts" />
+ 
 // 1. TODAS LAS IMPORTACIONES ORIGINALES ESTÁN COMENTADAS
 //import { assert, assertEquals, assertExists } from "@std/assert";
 //import { CartMandateDetector } from "../src/core/mandates/cart/mod.ts";

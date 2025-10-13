@@ -1,4 +1,4 @@
-/// <reference types="../src/types/deno.d.ts" />
+ 
 /**
  * JWT Service Test Suite
  *

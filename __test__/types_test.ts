@@ -1,4 +1,4 @@
-/// <reference types="../src/types/deno.d.ts" />
+ 
 /**
  * AP2 Types Test Suite
  *
