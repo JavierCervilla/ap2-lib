@@ -1,3 +1,4 @@
+/// <reference types="../src/types/deno.d.ts" />
 /**
  * IntentMandate Validator Test Suite
  *
@@ -7,7 +8,7 @@
 
 import { assert, assertEquals, assertExists } from "@std/assert";
 import { IntentMandateValidator } from "../src/core/mandates/intent/mod.ts";
-import { ValidationConfig, DEFAULT_VALIDATION_CONFIG } from "../src/core/config/validation-config.ts";
+import { type ValidationConfig, DEFAULT_VALIDATION_CONFIG } from "../src/core/config/validation-config.ts";
 import type { IntentMandate } from "../src/types/mod.ts";
 
 // Valid test data

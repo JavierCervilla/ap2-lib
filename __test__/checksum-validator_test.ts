@@ -1,3 +1,4 @@
+/// <reference types="../src/types/deno.d.ts" />
 /**
  * Checksum Validator Test Suite
  *
@@ -221,8 +222,6 @@ Deno.test("ChecksumValidator - Complete JWT checksum validation - valid", async 
 
   // With comprehensive validation, check if it passes or if there are acceptable failures
   if (!result.valid) {
-    console.log("Comprehensive validation failed:", result.errors);
-    // Ensure we have proper error reporting
     assert(result.errors.length > 0, "Should have error messages if validation failed");
     assert(result.components !== undefined, "Should have component validation results");
   } else {
@@ -232,7 +231,6 @@ Deno.test("ChecksumValidator - Complete JWT checksum validation - valid", async 
     assertEquals(result.components.structure, true);
     assertEquals(result.errors.length, 0);
   }
-
   assertExists(result.checksums);
   assertEquals(result.checksums.expectedCartHash.length, 64);
   assertEquals(result.checksums.actualCartHash.length, 64);

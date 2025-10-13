@@ -1,3 +1,4 @@
+/// <reference types="../src/types/deno.d.ts" />
 /**
  * Mandate Classes Test Suite
  *
@@ -14,10 +15,8 @@ import {
   createIntentMandate,
   createCartMandate,
   createMandateFromData,
-  type MandateStatus,
 } from "../src/mod.ts";
 import {
-  generateKeyPair,
   MandateValidationError,
   createFutureISO8601,
   TIME_CONSTANTS,

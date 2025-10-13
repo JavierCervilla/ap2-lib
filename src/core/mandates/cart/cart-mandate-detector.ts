@@ -4,7 +4,7 @@
  * Detector for CartMandate type following strategy pattern.
  */
 
-import { MandateType, type MandateTypeDetector, type MandateTypeDetectionResult } from "../shared/mandate-type-detector.ts";
+import { MandateType, type MandateTypeDetectionResult } from "../shared/mandate-type-detector.ts";
 import { BaseMandateTypeDetector } from "../shared/mandate-type-detector.ts";
 
 /**

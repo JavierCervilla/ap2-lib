@@ -5,7 +5,6 @@
  * principle to allow easy extension with new mandate types.
  */
 
-import type { Mandate, IntentMandate, CartMandate } from "../../../types/mod.ts";
 
 /**
  * Enumeration of supported mandate types

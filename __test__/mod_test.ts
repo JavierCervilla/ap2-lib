@@ -1,3 +1,4 @@
+/// <reference types="../src/types/deno.d.ts" />
 /**
  * AP2 Library - Main Module Tests
  *

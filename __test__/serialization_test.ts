@@ -1,3 +1,4 @@
+/// <reference types="../src/types/deno.d.ts" />
 /**
  * Serialization Functions Test Suite (TDD)
  *
@@ -6,7 +7,7 @@
  */
 
 import { assert, assertEquals, assertRejects } from "@std/assert";
-import type { IntentMandate, CartContents, CartMandate, PaymentRequest } from "../src/mod.ts";
+import type { IntentMandate, CartContents, CartMandate } from "../src/mod.ts";
 import {
   createFutureISO8601,
   TIME_CONSTANTS,
@@ -20,6 +21,7 @@ import {
   PaymentRequestSerializer,
   MandateSerializationStrategyRegistry,
 } from "../src/mod.ts";
+import { AP2PaymentRequest } from "../src/types/mod.ts";
 
 // Test data fixtures
 const validIntentMandate: IntentMandate = {
@@ -31,7 +33,7 @@ const validIntentMandate: IntentMandate = {
   intent_expiry: createFutureISO8601(TIME_CONSTANTS.WEEK),
 };
 
-const validPaymentRequest: PaymentRequest = {
+const validPaymentRequest: AP2PaymentRequest = {
   id: "payment-req-789",
   methodData: [
     { supportedMethods: "basic-card" },
@@ -501,7 +503,7 @@ Deno.test("Serialization handles CartMandate without merchant_authorization", as
 });
 
 Deno.test("Serialization preserves PaymentRequest with all optional fields", async () => {
-  const minimalPaymentRequest: PaymentRequest = {
+  const minimalPaymentRequest: AP2PaymentRequest = {
     id: "minimal-payment",
     methodData: [{ supportedMethods: "basic-card" }],
     details: {
@@ -524,7 +526,7 @@ Deno.test("Serialization preserves PaymentRequest with all optional fields", asy
 });
 
 Deno.test("Serialization handles PaymentRequest with displayItems and total", async () => {
-  const paymentRequestWithItems: PaymentRequest = {
+  const paymentRequestWithItems: AP2PaymentRequest = {
     id: "items-with-total",
     methodData: [{ supportedMethods: "basic-card" }],
     details: {

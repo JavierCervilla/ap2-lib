@@ -3,9 +3,14 @@
   "version": "0.0.0",
   "description": "AP2 Library - Agent Payments Protocol",
   "license": "MIT",
+  "compilerOptions": {
+    "lib": [
+      "deno.window"
+    ]
+  },
   "tasks": {
     "dev": "deno run --watch src/main.ts",
-    "test": "deno test --allow-net --allow-read --coverage=coverage",
+    "test": "deno test --config deno.jsonc --allow-net --allow-read --coverage=coverage",
     "coverage": "deno coverage coverage",
     "coverage:clean": "rm -rf coverage",
     "coverage:detailed": "deno coverage coverage --detailed",

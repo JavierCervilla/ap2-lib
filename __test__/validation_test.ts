@@ -1,3 +1,4 @@
+/// <reference types="../src/types/deno.d.ts" />
 /**
  * Validation Functions Test Suite (TDD)
  *
@@ -5,12 +6,9 @@
  * These tests define the expected behavior before implementation.
  */
 
-import { assert, assertEquals, assertRejects } from "@std/assert";
-import type { IntentMandate, CartContents, PaymentRequest } from "../src/mod.ts";
+import { assert, assertEquals } from "@std/assert";
+import type { IntentMandate, CartContents, AP2PaymentRequest } from "../src/mod.ts";
 import {
-  MandateValidationError,
-  PaymentRequestValidationError,
-  MandateExpiredError,
   createFutureISO8601,
   TIME_CONSTANTS,
 } from "../src/utils/mod.ts";
@@ -120,7 +118,7 @@ Deno.test("CartContentsValidator.validate - Rejects cart with empty ID", async (
 });
 
 Deno.test("PaymentRequestValidator.validate - Valid payment request passes", async () => {
-  const validRequest: PaymentRequest = {
+  const validRequest: AP2PaymentRequest = {
     id: "payment-req-789",
     methodData: [
       { supportedMethods: "basic-card" },
@@ -157,7 +155,7 @@ Deno.test("PaymentRequestValidator.validate - Valid payment request passes", asy
 });
 
 Deno.test("PaymentRequestValidator.validate - Rejects request with no payment methods", async () => {
-  const invalidRequest: PaymentRequest = {
+  const invalidRequest: AP2PaymentRequest = {
     id: "payment-123",
     methodData: [], // No payment methods!
     details: {
@@ -175,7 +173,7 @@ Deno.test("PaymentRequestValidator.validate - Rejects request with no payment me
 });
 
 Deno.test("PaymentRequestValidator.validate - Rejects request with invalid currency", async () => {
-  const invalidRequest: PaymentRequest = {
+  const invalidRequest: AP2PaymentRequest = {
     id: "payment-123",
     methodData: [{ supportedMethods: "basic-card" }],
     details: {
@@ -193,7 +191,7 @@ Deno.test("PaymentRequestValidator.validate - Rejects request with invalid curre
 });
 
 Deno.test("PaymentRequestValidator.validate - Rejects request with negative amount", async () => {
-  const invalidRequest: PaymentRequest = {
+  const invalidRequest: AP2PaymentRequest = {
     id: "payment-123",
     methodData: [{ supportedMethods: "basic-card" }],
     details: {
@@ -408,7 +406,7 @@ Deno.test("CartContentsValidator.validate - Handles invalid cart expiry format",
 });
 
 Deno.test("PaymentRequestValidator.validate - Handles request with only displayItems", async () => {
-  const requestWithDisplayItems: PaymentRequest = {
+  const requestWithDisplayItems: AP2PaymentRequest = {
     id: "payment-123",
     methodData: [{ supportedMethods: "basic-card" }],
     details: {
@@ -437,7 +435,7 @@ Deno.test("PaymentRequestValidator.validate - Handles request with only displayI
 });
 
 Deno.test("PaymentRequestValidator.validate - Handles invalid refund period (negative)", async () => {
-  const invalidRequest: PaymentRequest = {
+  const invalidRequest: AP2PaymentRequest = {
     id: "payment-123",
     methodData: [{ supportedMethods: "basic-card" }],
     details: {
@@ -455,7 +453,7 @@ Deno.test("PaymentRequestValidator.validate - Handles invalid refund period (neg
 });
 
 Deno.test("PaymentRequestValidator.validate - Handles excessive refund period", async () => {
-  const invalidRequest: PaymentRequest = {
+  const invalidRequest: AP2PaymentRequest = {
     id: "payment-123",
     methodData: [{ supportedMethods: "basic-card" }],
     details: {
@@ -473,7 +471,7 @@ Deno.test("PaymentRequestValidator.validate - Handles excessive refund period", 
 });
 
 Deno.test("PaymentRequestValidator.validate - Handles invalid amount format", async () => {
-  const invalidRequest: PaymentRequest = {
+  const invalidRequest: AP2PaymentRequest = {
     id: "payment-123",
     methodData: [{ supportedMethods: "basic-card" }],
     details: {
@@ -491,7 +489,7 @@ Deno.test("PaymentRequestValidator.validate - Handles invalid amount format", as
 });
 
 Deno.test("PaymentRequestValidator.validate - Handles display items with invalid amounts", async () => {
-  const invalidRequest: PaymentRequest = {
+  const invalidRequest: AP2PaymentRequest = {
     id: "payment-123",
     methodData: [{ supportedMethods: "basic-card" }],
     details: {
@@ -516,7 +514,7 @@ Deno.test("PaymentRequestValidator.validate - Handles display items with invalid
 });
 
 Deno.test("PaymentRequestValidator.validate - Handles display items with invalid currency", async () => {
-  const invalidRequest: PaymentRequest = {
+  const invalidRequest: AP2PaymentRequest = {
     id: "payment-123",
     methodData: [{ supportedMethods: "basic-card" }],
     details: {

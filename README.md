@@ -355,8 +355,8 @@ deno task publish      # Publish to JSR and npm
 
 ```
 src/
-├── core/                 # Core AP2 implementations
-│   ├── mandates/        # Mandate management (Intent, Cart, Payment)
+├── core/               # Core AP2 implementations
+│   ├── mandates/       # Mandate management (Intent, Cart, Payment)
 │   ├── jwt/            # JWT/JWS cryptographic services
 │   ├── config/         # Validation configuration
 │   └── utils/          # Internal utilities

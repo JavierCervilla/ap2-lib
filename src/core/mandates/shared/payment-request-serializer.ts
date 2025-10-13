@@ -4,13 +4,13 @@
  * Specialized serializer for PaymentRequest entities following the Single Responsibility Principle.
  */
 
-import type { PaymentRequest } from "../../../types/mod.ts";
+import type { AP2PaymentRequest } from "../../../types/mod.ts";
 import { BaseJsonSerializer } from "./interfaces.ts";
 
 /**
  * Serializer for PaymentRequest entities
  */
-export class PaymentRequestSerializer extends BaseJsonSerializer<PaymentRequest> {
+export class PaymentRequestSerializer extends BaseJsonSerializer<AP2PaymentRequest> {
   private static readonly REQUIRED_FIELDS = [
     'methodData',
     'details'
@@ -37,14 +37,14 @@ export class PaymentRequestSerializer extends BaseJsonSerializer<PaymentRequest>
   /**
    * Static method to serialize PaymentRequest
    */
-  static async serialize(paymentRequest: PaymentRequest): Promise<string> {
+  static async serialize(paymentRequest: AP2PaymentRequest): Promise<string> {
     return await PaymentRequestSerializer.create().serialize(paymentRequest);
   }
 
   /**
    * Static method to deserialize PaymentRequest
    */
-  static async deserialize(json: string): Promise<PaymentRequest> {
+  static async deserialize(json: string): Promise<AP2PaymentRequest> {
     return await PaymentRequestSerializer.create().deserialize(json);
   }
 }

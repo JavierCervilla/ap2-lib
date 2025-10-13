@@ -1,7 +1,7 @@
 import { build, emptyDir } from "https://deno.land/x/dnt/mod.ts";
 
 async function loadDenoConfig() {
-    const denoConfig = JSON.parse(await Deno.readTextFile("./deno.json"));
+    const denoConfig = JSON.parse(await Deno.readTextFile("./deno.jsonc"));
     return denoConfig;
 }
 

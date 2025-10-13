@@ -1,3 +1,4 @@
+/// <reference types="../src/types/deno.d.ts" />
 /**
  * JWT Service Test Suite
  *
@@ -14,7 +15,6 @@ import {
   JOSEJWTKeyManager,
   type JWTKeyConfig,
   type JWTAlgorithm,
-  type MerchantAuthorizationPayload
 } from "../src/mod.ts";
 
 // Test JWT signing and verification

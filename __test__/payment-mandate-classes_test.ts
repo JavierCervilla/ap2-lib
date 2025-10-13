@@ -1,3 +1,4 @@
+/// <reference types="../src/types/deno.d.ts" />
 /**
  * PaymentMandate Classes Test Suite
  *
@@ -11,7 +12,6 @@ import {
   PaymentMandateContentsClass,
 } from "../src/core/mandates/payment/mod.ts";
 import type { PaymentMandate, PaymentMandateContents } from "../src/types/mod.ts";
-import { MandateValidationError } from "../src/utils/mod.ts";
 
 // Test PaymentMandateContentsClass
 Deno.test("PaymentMandateContentsClass - Create valid contents", async () => {

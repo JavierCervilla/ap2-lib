@@ -6,7 +6,7 @@
  */
 
 import type { IntentMandate, CartContents, CartMandate } from "../../../types/mod.ts";
-import type { PaymentRequest } from "../../../types/mod.ts";
+import type { AP2PaymentRequest } from "../../../types/mod.ts";
 
 // Import class-based implementations
 import { IntentMandateClass } from "../intent/intent-mandate-class.ts";
@@ -31,7 +31,7 @@ export interface CreateIntentMandateParams {
 export interface CreateCartContentsParams {
   id: string;
   user_cart_confirmation_required: boolean;
-  payment_request: PaymentRequest;
+  payment_request: AP2PaymentRequest;
   cart_expiry: string;
   merchant_name: string;
 }

@@ -1,3 +1,4 @@
+/// <reference types="../src/types/deno.d.ts" />
 /**
  * PaymentMandate Detector Test Suite
  *
@@ -5,7 +6,7 @@
  * Tests type detection, detailed detection, and edge cases.
  */
 
-import { assert, assertEquals, assertExists } from "@std/assert";
+import { assert, assertEquals } from "@std/assert";
 import { PaymentMandateDetector } from "../src/core/mandates/payment/mod.ts";
 import { MandateType } from "../src/core/mandates/shared/mod.ts";
 import type { PaymentMandate, PaymentMandateContents } from "../src/types/mod.ts";

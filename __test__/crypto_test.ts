@@ -1,3 +1,4 @@
+/// <reference types="../src/types/deno.d.ts" />
 /**
  * Cryptographic Functions Test Suite (TDD)
  *
@@ -6,7 +7,7 @@
  */
 
 import { assert, assertEquals, assertRejects, assertNotEquals } from "@std/assert";
-import type { IntentMandate, CartMandate } from "../src/mod.ts";
+import type { IntentMandate } from "../src/mod.ts";
 import {
   CryptographicError,
   SignatureVerificationError,

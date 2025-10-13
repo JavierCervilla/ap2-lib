@@ -1,3 +1,4 @@
+/// <reference types="../src/types/deno.d.ts" />
 /**
  * JWT Integration Test Suite
  *
@@ -5,7 +6,7 @@
  * Validates the complete flow of AP2 JWT-based merchant authorization.
  */
 
-import { assert, assertEquals, assertExists, assertRejects } from "@std/assert";
+import { assert, assertEquals, assertExists } from "@std/assert";
 import {
   CartMandateClass,
   PaymentMandateClass,
@@ -14,7 +15,6 @@ import {
   jwtService,
   createFutureISO8601,
   TIME_CONSTANTS,
-  type CartContents,
   type PaymentMandate,
   type PaymentMandateContents
 } from "../src/mod.ts";

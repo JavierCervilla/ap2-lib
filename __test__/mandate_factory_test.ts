@@ -1,3 +1,4 @@
+/// <reference types="../src/types/deno.d.ts" />
 /**
  * Mandate Factory Test Suite
  *
@@ -6,7 +7,7 @@
  */
 
 import { assert, assertEquals, assertRejects, assertExists } from "@std/assert";
-import type { IntentMandate, CartContents, CartMandate } from "../src/mod.ts";
+import type { IntentMandate, CartMandate } from "../src/mod.ts";
 import {
   IntentMandateClass,
   CartMandateClass,
@@ -14,7 +15,6 @@ import {
   createCartMandate,
   createMandateFromData,
   MandateValidationError,
-  DateParseError,
   createFutureISO8601,
   TIME_CONSTANTS,
 } from "../src/mod.ts";
