@@ -5,6 +5,7 @@
 [![Deno](https://img.shields.io/badge/deno-2.0+-black.svg)](https://deno.land)
 [![JSR](https://img.shields.io/badge/JSR-@xja77/ap2--lib-yellow.svg)](https://jsr.io/@xja77/ap2-lib)
 [![Test Coverage](https://img.shields.io/badge/coverage-91.0%25-brightgreen.svg)](#testing)
+[![Documentation](https://img.shields.io/badge/docs-live-blue.svg)](https://xja77.github.io/ap2-lib/)
 
 > **TypeScript/Deno implementation of the Agent Payments Protocol (AP2)** - The open, universal protocol backed by Google and 60+ organizations for autonomous commerce.
 
@@ -290,11 +291,14 @@ deno task coverage:detailed
 
 ## 📚 API Documentation
 
-Generate complete API documentation:
+### 🌐 Live Documentation
+**[📖 Browse Complete API Documentation →](https://xja77.github.io/ap2-lib/)**
+
+### Generate Documentation Locally
 
 ```bash
 # Generate HTML documentation
-deno doc --html --name="AP2 Library" --output=docs ./src/mod.ts
+deno task doc
 
 # View documentation in terminal
 deno doc ./src/mod.ts
