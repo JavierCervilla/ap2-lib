@@ -36,7 +36,7 @@ jobs:
       - name: 🦕 Setup Deno
         uses: denoland/setup-deno@v1
         with:
-          deno-version: v1.x
+          deno-version: v2.x
 
       - name: 🔍 Cache Deno dependencies
         uses: actions/cache@v3
@@ -47,6 +47,9 @@ jobs:
           key: ${{ runner.os }}-deno-${{ hashFiles('**/deno.lock') }}
           restore-keys: |
             ${{ runner.os }}-deno-
+
+      - name: 🔧 Install dependencies
+        run: deno install --allow-scripts
 
       - name: 📋 Run tests (ensure code quality)
         run: deno task test
