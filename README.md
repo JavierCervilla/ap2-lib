@@ -4,7 +4,7 @@
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Deno](https://img.shields.io/badge/deno-2.0+-black.svg)](https://deno.land)
 [![JSR](https://img.shields.io/badge/JSR-@xja77/ap2--lib-yellow.svg)](https://jsr.io/@xja77/ap2-lib)
-[![Test Coverage](https://img.shields.io/badge/coverage-85.2%25-brightgreen.svg)](#testing)
+[![Test Coverage](https://img.shields.io/badge/coverage-91.0%25-brightgreen.svg)](#testing)
 
 > **TypeScript/Deno implementation of the Agent Payments Protocol (AP2)** - The open, universal protocol backed by Google and 60+ organizations for autonomous commerce.
 
@@ -19,7 +19,7 @@ The **Agent Payments Protocol (AP2)** enables AI agents to make secure, autonomo
 - 🔒 **JWT/JOSE Security** - Industry-standard JWT signatures with RS256/ES256 algorithms
 - 📝 **Strong TypeScript Typing** - Complete type safety for all AP2 structures
 - 🏗️ **SOLID Architecture** - Clean OOP design with class-based API
-- ✅ **High Test Coverage** - Comprehensive validation and error handling (85.2%+)
+- ✅ **High Test Coverage** - Comprehensive validation and error handling (91.0%+)
 - 🌐 **Universal Compatibility** - Works in Deno, Node.js, and browsers
 - 📊 **Advanced Validation** - Multi-layered mandate integrity checking
 
@@ -281,10 +281,10 @@ deno task coverage:detailed
 
 ### Current Test Metrics
 
-- **Total Tests**: 180+ passing
-- **Line Coverage**: 85.2%+
-- **Branch Coverage**: 85.2%+
-- **Files**: 51 TypeScript modules
+- **Total Tests**: 260+ passing
+- **Line Coverage**: 91.0%+
+- **Branch Coverage**: 89.9%+
+- **Files**: 54+ TypeScript modules
 
 ---
 

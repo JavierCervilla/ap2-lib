@@ -1,10 +1,10 @@
 # STATUS.md - AP2 Library Implementation Status
 
-*Last updated: October 12, 2025*
+*Last updated: October 13, 2025*
 
 ## Executive Summary
 
-**Overall Project Status:** 🟡 **35% Completed** (MVP Partial)
+**Overall Project Status:** 🟡 **45% Completed** (MVP Partial)
 
 The current implementation focuses on the core `ap2-lib` module with a solid foundation of typing, validation, and JWT/JOSE cryptography. The MCP Server and Dashboard components have not been started.
 
@@ -12,7 +12,7 @@ The current implementation focuses on the core `ap2-lib` module with a solid fou
 
 ## Status by MVP Component
 
-### 1. 🟢 ap2-lib (Core Module) - **80% Completed**
+### 1. 🟢 ap2-lib (Core Module) - **90% Completed**
 
 #### ✅ Completed (Requirements Met)
 
@@ -28,18 +28,18 @@ The current implementation focuses on the core `ap2-lib` module with a solid fou
 
 | Area | Current Status | REQUIREMENTS.md Goal |
 |---|---|---|
-| **Unit Tests** | 95%+ coverage (426+ tests) | 100% tested |
+| **Unit Tests** | 91%+ coverage (260+ tests) | 100% tested |
 | **JWT Signature Verification** | ✅ Complete | ✅ Complete checksum verification implemented |
 | **API Documentation** | Complete with `deno doc` | Comprehensive documentation |
 
 #### 📊 Quality Metrics
 
 ```
-Tests: 426+ passing | 0 failing
-Coverage: 82%+ lines | 79%+ branches
-Files: 53+ TypeScript modules
+Tests: 260+ passing | 0 failing
+Coverage: 91.0% lines | 89.9% branches
+Files: 54+ TypeScript modules
 SOLID Principles: ✅ Applied (refactored with OOP classes)
-JWT Security: ✅ Enhanced with replay attack prevention & comprehensive verification
+JWT Security: ✅ Enhanced with replay attack prevention, custom error classes & comprehensive validation
 ```
 
 #### 🏗 Implemented Architecture
@@ -96,28 +96,35 @@ Without MCP Server, there's no functional API for AI agents. **Critical blocker*
 ## 📈 Análisis Detallado de Cobertura de Tests
 
 ### Módulos con Cobertura Completa (>90%)
-- `core/serialization.ts` - 100%
-- `core/mandate-factory.ts` - 85.2%
+- `core/jwt/jose-service.ts` - 81.3% líneas / 80.9% branches
+- `core/jwt/jti-validator.ts` - 94.6% líneas / 97.4% branches
+- `core/jwt/checksum-validator.ts` - 93.3% líneas / 89.6% branches
+- `core/mandates/shared/mandate-type-detector.ts` - 95.9% líneas / 91.4% branches
 - `utils/date.ts` - 100%
-- `types/` - 100%
+- `types/` y diversos módulos core - 100%
 
-### Módulos que Requieren Más Tests (<60%)
-- `core/utils/der-signature.ts` - **4.5%** ⚠️ (Funciones marcadas como no usadas)
-- `core/strategies/mandate-type-detector.ts` - **36.9%** ⚠️
-- `core/validation/cart-mandate-validator.ts` - **47.1%** ⚠️
-- `core/utils/field-validator.ts` - **61.1%** 🟡
+### Módulos que Requieren Optimización (<80%)
+- `core/mandates/shared/mandate-class-factory.ts` - **72.7%** líneas 🟡
+- `core/mandates/shared/mandate-validator-strategy.ts` - **79.8%** líneas 🟡
+- `core/config/validation-config.ts` - **68.4%** líneas 🟡
+
+### ✅ Mejoras Recientes en JWT Enhanced Validation
+- Custom error classes para JWT service
+- Validación mejorada de checksums
+- Prevención de ataques de replay mejorada
 
 ---
 
 ## 🚀 Plan de Desarrollo Detallado
 
-### **FASE 1: Completar ap2-lib** (2-3 semanas)
+### **FASE 1: Completar ap2-lib** (1-2 semanas)
 **Prioridad: 🟡 Alta**
 
-#### Sprint 1.1: Cobertura de Tests (1 semana)
-- [ ] Aumentar cobertura de `mandate-type-detector.ts` a >90%
-- [ ] Completar tests de `cart-mandate-validator.ts`
-- [ ] Añadir tests de integración end-to-end
+#### Sprint 1.1: Finalizar Cobertura de Tests (1 semana)
+- [x] ✅ Enhanced JWT validation con custom error classes
+- [x] ✅ Mejorada cobertura de `mandate-type-detector.ts` a 95.9%
+- [x] ✅ Tests completos de validación JWT y checksums
+- [ ] Optimizar tests en `mandate-class-factory.ts` y `validation-config.ts`
 - [ ] Tests de rendimiento para firmas criptográficas
 
 #### Sprint 1.2: Pulir API y Docs (1 semana)
