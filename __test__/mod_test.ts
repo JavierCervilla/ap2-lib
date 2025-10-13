@@ -5,7 +5,7 @@
  * Tests for the main module exports to ensure all types are properly exported.
  */
 
-import { assert, assertExists } from "@std/assert";
+import { assert, assertExists } from "./test_helper.ts";
 import * as AP2 from "../src/mod.ts";
 
 Deno.test("AP2 Library - All exports available", () => {

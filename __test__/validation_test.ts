@@ -6,7 +6,7 @@
  * These tests define the expected behavior before implementation.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals } from "./test_helper.ts";
 import type { IntentMandate, CartContents, AP2PaymentRequest } from "../src/mod.ts";
 import {
   createFutureISO8601,

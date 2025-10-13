@@ -5,7 +5,7 @@
  * Tests for date utility functions used throughout the AP2 library.
  */
 
-import { assert, assertEquals, assertThrows } from "@std/assert";
+import { assert, assertEquals, assertThrows } from "./test_helper.ts";
 import {
   isValidISO8601,
   parseISO8601,

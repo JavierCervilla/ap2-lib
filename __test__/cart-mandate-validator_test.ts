@@ -6,7 +6,7 @@
  * Tests validation, integrity checking, and expiry checking.
  */
 
-import { assert, assertEquals, assertExists } from "@std/assert";
+import { assert, assertEquals, assertExists } from "./test_helper.ts";
 import { CartMandateValidator } from "../src/core/mandates/cart/mod.ts";
 import { type ValidationConfig, DEFAULT_VALIDATION_CONFIG } from "../src/core/config/validation-config.ts";
 import type { CartMandate, CartContents } from "../src/types/mod.ts";

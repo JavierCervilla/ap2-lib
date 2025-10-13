@@ -4,7 +4,7 @@
  * Comprehensive tests for multi-level checksum validation.
  */
 
-import { assert, assertEquals, assertExists, assertFalse, assertNotEquals, assertRejects, assertThrows } from "@std/assert";
+import { assert, assertEquals, assertExists, assertFalse, assertNotEquals, assertRejects, assertThrows } from "./test_helper.ts";
 import {
   ChecksumValidator,
   defaultChecksumValidator,

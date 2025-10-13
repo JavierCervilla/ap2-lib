@@ -6,7 +6,7 @@
  * and integration with CartMandateClass following AP2 specification.
  */
 
-import { assert, assertEquals, assertExists, assertRejects } from "@std/assert";
+import { assert, assertEquals, assertExists, assertRejects } from "./test_helper.ts";
 import {
   jwtService,
   JOSEJWTService,

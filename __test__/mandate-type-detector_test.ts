@@ -5,7 +5,7 @@
  * Improving test coverage for mandate type detection system
  */
 
-import { assertEquals, assert, assertFalse } from "@std/assert";
+import { assertEquals, assert, assertFalse } from "./test_helper.ts";
 import {
   MandateType,
   MandateTypeDetectorRegistry,

@@ -6,7 +6,7 @@
  * Verifies OOP functionality, signing, verification, and toString methods.
  */
 
-import { assert, assertEquals, assertExists, assertRejects } from "@std/assert";
+import { assert, assertEquals, assertExists, assertRejects } from "./test_helper.ts";
 import type { IntentMandate, CartContents, CartMandate } from "../src/mod.ts";
 import {
   IntentMandateClass,

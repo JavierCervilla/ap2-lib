@@ -5,7 +5,7 @@
  * Comprehensive tests for JWT ID validation and replay attack prevention.
  */
 
-import { assert, assertEquals, assertExists, assertRejects } from "@std/assert";
+import { assert, assertEquals, assertExists, assertRejects } from "./test_helper.ts";
 import {
   JTIValidator,
   MemoryJTIStorage,

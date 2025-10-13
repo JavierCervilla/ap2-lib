@@ -6,7 +6,7 @@
  * Validates OOP functionality, validation, and error handling.
  */
 
-import { assert, assertEquals, assertRejects, assertExists } from "@std/assert";
+import { assert, assertEquals, assertRejects, assertExists } from "./test_helper.ts";
 import type { IntentMandate, CartMandate } from "../src/mod.ts";
 import {
   IntentMandateClass,

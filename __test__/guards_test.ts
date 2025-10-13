@@ -3,7 +3,7 @@
  * Tests for Type Guards
  */
 
-import { assertEquals, assert, assertFalse } from "@std/assert";
+import { assertEquals, assert, assertFalse } from "./test_helper.ts";
 import { isIntentMandate, isCartMandate, getMandateType } from "../src/types/guards.ts";
 import { MandateType } from "../src/core/mandates/shared/mod.ts";
 import type { IntentMandate, CartMandate, Mandate } from "../src/types/mod.ts";

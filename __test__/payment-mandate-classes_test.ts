@@ -6,7 +6,7 @@
  * to achieve 100% test coverage for payment mandate implementations.
  */
 
-import { assert, assertEquals, assertExists, assertRejects } from "@std/assert";
+import { assert, assertEquals, assertExists, assertRejects } from "./test_helper.ts";
 import {
   PaymentMandateClass,
   PaymentMandateContentsClass,

@@ -6,7 +6,7 @@
  * to achieve 100% test coverage for security-critical validation modules.
  */
 
-import { assert, assertEquals, assertExists, assertRejects } from "@std/assert";
+import { assert, assertEquals, assertExists, assertRejects } from "./test_helper.ts";
 import { PaymentMandateValidator, PaymentMandateContentsValidator } from "../src/core/mandates/payment/mod.ts";
 import type { PaymentMandate, PaymentMandateContents } from "../src/types/mod.ts";
 import { type ValidationConfig, DEFAULT_VALIDATION_CONFIG } from "../src/core/config/validation-config.ts";

@@ -6,7 +6,7 @@
  * Tests type detection, detailed detection, and edge cases.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals } from "./test_helper.ts";
 import { CartMandateDetector } from "../src/core/mandates/cart/mod.ts";
 import { MandateType } from "../src/core/mandates/shared/mod.ts";
 import type { CartMandate, CartContents } from "../src/types/mod.ts";

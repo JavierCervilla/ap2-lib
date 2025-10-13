@@ -6,7 +6,7 @@
  * These tests define the expected behavior before implementation.
  */
 
-import { assert, assertEquals, assertRejects } from "@std/assert";
+import { assert, assertEquals, assertRejects } from "./test_helper.ts";
 import type { IntentMandate, CartContents, CartMandate } from "../src/mod.ts";
 import {
   createFutureISO8601,

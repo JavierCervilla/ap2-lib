@@ -6,7 +6,7 @@
  * the Google AP2 specification exactly.
  */
 
-import { assert, assertEquals, assertExists } from "@std/assert";
+import { assert, assertEquals, assertExists } from "./test_helper.ts";
 import {
   CART_MANDATE_DATA_KEY,
   INTENT_MANDATE_DATA_KEY,

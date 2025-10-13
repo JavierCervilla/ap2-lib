@@ -6,7 +6,7 @@
  * Validates the complete flow of AP2 JWT-based merchant authorization.
  */
 
-import { assert, assertEquals, assertExists } from "@std/assert";
+import { assert, assertEquals, assertExists } from "./test_helper.ts";
 import {
   CartMandateClass,
   PaymentMandateClass,

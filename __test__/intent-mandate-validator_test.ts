@@ -6,7 +6,7 @@
  * Focus on covering all conditional branches and edge cases.
  */
 
-import { assert, assertEquals, assertExists } from "@std/assert";
+import { assert, assertEquals, assertExists } from "./test_helper.ts";
 import { IntentMandateValidator } from "../src/core/mandates/intent/mod.ts";
 import { type ValidationConfig, DEFAULT_VALIDATION_CONFIG } from "../src/core/config/validation-config.ts";
 import type { IntentMandate } from "../src/types/mod.ts";

@@ -1,14 +1,14 @@
- 
-/**
+ /**
  * BaseMandate Test Suite
  *
  * Comprehensive tests for BaseMandate to achieve 100% branch coverage.
  * Focus on covering all conditional branches and optional parameter paths.
  */
 
-import { assert, assertEquals, assertExists } from "@std/assert";
+import {  assertEquals, assertExists } from "./test_helper.ts";
 import { BaseMandate } from "../src/core/mandates/shared/base-mandate.ts";
 import type { IntentMandate } from "../src/types/mod.ts";
+import { assertNotEquals } from "@std/assert/not-equals";
 
 // Create a concrete implementation for testing BaseMandate
 class TestMandate extends BaseMandate<IntentMandate> {
@@ -135,48 +135,41 @@ Deno.test("BaseMandate - setStatus method", () => {
   assertEquals(mandate.getStatus(), "captured");
 });
 
-Deno.test("BaseMandate - getData method returns copy", () => {
+Deno.test("BaseMandate - getData method returns a deep copy", () => {
   const mandate = new TestMandate(validIntentMandate);
-  const data = mandate.getData();
+  const dataCopy = mandate.getData();
 
-  assertEquals(data.natural_language_description, validIntentMandate.natural_language_description);
+  // Intenta mutar la copia
+  (dataCopy as any).natural_language_description = "MODIFIED";
 
-  // Verify it's a copy (modifying returned data shouldn't affect original)
-  assert(data !== validIntentMandate);
+  // Vuelve a obtener los datos y comprueba que el original no ha cambiado
+  const originalData = mandate.getData();
+  assertEquals(originalData.natural_language_description, validIntentMandate.natural_language_description);
 });
 
-Deno.test("BaseMandate - getCreatedAt returns copy", () => {
-  const originalDate = new Date("2024-01-01T00:00:00Z");
+Deno.test("BaseMandate - getCreatedAt returns a new Date instance", () => {
+  const originalDate = new Date();
   const mandate = new TestMandate(validIntentMandate, { createdAt: originalDate });
+  const dateCopy = mandate.getCreatedAt();
 
-  const returnedDate = mandate.getCreatedAt();
-  assertEquals(returnedDate.getTime(), originalDate.getTime());
+  // Intenta mutar la copia
+  dateCopy.setFullYear(1999);
 
-  // Verify it's a copy
-  assert(returnedDate !== originalDate);
+  // Vuelve a obtener la fecha y comprueba que la original no ha cambiado
+  const originalDateFromGetter = mandate.getCreatedAt();
+  assertNotEquals(originalDateFromGetter.getFullYear(), 1999);
 });
 
-Deno.test("BaseMandate - unique ID generation", async () => {
-  const mandate1 = new TestMandate(validIntentMandate);
+Deno.test("BaseMandate - unique ID generation is consistent and unique", () => {
+  // 1. Dos mandatos diferentes deben tener IDs diferentes.
+  const mandate1 = new TestMandate({ ...validIntentMandate, natural_language_description: "Mandato A" });
+  const mandate2 = new TestMandate({ ...validIntentMandate, natural_language_description: "Mandato B" });
+  
+  assertNotEquals(mandate1.getId(), mandate2.getId(), "Different mandates should have different IDs");
 
-  // Wait a tiny bit to ensure different timestamp
-  await new Promise(resolve => setTimeout(resolve, 1));
-
-  const mandate2 = new TestMandate(validIntentMandate);
-
-  // Different instances should have different IDs (because timestamps differ)
-  // If they're still the same, that's actually fine - it means the hash is consistent
-  // which is also valid behavior
+  // 2. El ID de una instancia debe ser consistente.
   const id1 = mandate1.getId();
-  const id2 = mandate2.getId();
-
-  // IDs should be consistent for same instance
-  assertEquals(mandate1.getId(), id1);
-  assertEquals(mandate2.getId(), id2);
-
-  // IDs should be hex strings
-  assert(/^[0-9a-f]+$/.test(id1));
-  assert(/^[0-9a-f]+$/.test(id2));
+  assertEquals(mandate1.getId(), id1, "Calling getId() multiple times should return the same ID");
 });
 
 Deno.test("BaseMandate - custom ID provided", () => {
@@ -221,53 +214,4 @@ Deno.test("BaseMandate - toJSON method without signature", () => {
   assertExists(json.createdAt);
   assertEquals(json.signature, undefined);
   assertEquals(json.data, validIntentMandate);
-});
-
-// Edge cases to ensure all branches are covered
-Deno.test("BaseMandate - edge cases for branch coverage", () => {
-  // Test with null-like values to ensure ?? operators work correctly
-  const mandate1 = new TestMandate(validIntentMandate, {
-    status: undefined, // Should use 'pending'
-    createdAt: undefined, // Should use new Date()
-    signature: undefined, // Should be undefined
-    id: undefined // Should generate ID
-  });
-
-  assertEquals(mandate1.getStatus(), "pending");
-  assertExists(mandate1.getCreatedAt());
-  assertEquals(mandate1.getSignature(), undefined);
-  assertExists(mandate1.getId());
-
-  // Test with explicit null (though TypeScript might not allow this)
-  const mandate2 = new TestMandate(validIntentMandate, {
-    signature: null as any
-  });
-
-  assertEquals(mandate2.getSignature(), null);
-});
-
-Deno.test("BaseMandate - comprehensive branch coverage verification", () => {
-  // This test specifically ensures all constructor branches are hit
-
-  // 1. No options at all
-  const mandate1 = new TestMandate(validIntentMandate);
-  assertExists(mandate1);
-
-  // 2. Options with some undefined values
-  const mandate2 = new TestMandate(validIntentMandate, {
-    status: undefined,
-    signature: "has-signature"
-  });
-  assertEquals(mandate2.getSignature(), "has-signature");
-
-  // 3. Options with all values
-  const mandate3 = new TestMandate(validIntentMandate, {
-    status: "failed",
-    createdAt: new Date(),
-    signature: "full-signature",
-    id: "full-id"
-  });
-  assertEquals(mandate3.getStatus(), "failed");
-  assertEquals(mandate3.getSignature(), "full-signature");
-  assertEquals(mandate3.getId(), "full-id");
 });

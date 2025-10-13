@@ -6,7 +6,7 @@
  * Focus on covering all conditional branches in constructor and methods.
  */
 
-import { assert, assertEquals, assertExists, assertRejects } from "@std/assert";
+import { assert, assertEquals, assertExists, assertRejects } from "./test_helper.ts";
 import { PaymentMandateContentsClass } from "../src/core/mandates/payment/payment-mandate-contents-class.ts";
 import { MandateValidationError } from "../src/utils/mod.ts";
 import type { PaymentMandateContents } from "../src/types/payment-mandate.ts";
