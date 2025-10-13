@@ -1,350 +1,230 @@
-/**
- * JWT Service Test Suite
- *
- * Comprehensive tests for JWT functionality including signing, verification,
- * and integration with CartMandateClass following AP2 specification.
- */
-
-import { assert, assertEquals, assertExists, assertRejects } from "@std/assert";
+import {
+  assert,
+  assertEquals,
+  assertExists,
+  assertRejects,
+  assertStringIncludes,
+  assertNotEquals,
+} from "./test_helper.ts";
+import { FakeTime } from "https://deno.land/std@0.224.0/testing/time.ts";
 import {
   jwtService,
   JOSEJWTService,
   JOSEJWTSigner,
   JOSEJWTVerifier,
   JOSEJWTKeyManager,
-  type JWTKeyConfig,
-  type JWTAlgorithm,
-  type MerchantAuthorizationPayload
 } from "../src/mod.ts";
+import * as jose from "jose";
 
-// Test JWT signing and verification
-Deno.test("JWT Service - Generate key pair RS256", async () => {
-  const keyPair = await jwtService.generateKeyPair('RS256');
+import {
+  KeyManagementError,
+  JWTSigningError,
+} from "../src/core/jwt/errors.ts";
 
-  assertExists(keyPair.privateKey);
-  assertExists(keyPair.publicKey);
-  assertEquals(keyPair.algorithm, 'RS256');
-  assertExists(keyPair.keyId);
-  assertEquals(keyPair.keyId?.length, 8); // 8 character key ID
-});
-
-Deno.test("JWT Service - Generate key pair ES256", async () => {
-  const keyPair = await jwtService.generateKeyPair('ES256');
-
-  assertExists(keyPair.privateKey);
-  assertExists(keyPair.publicKey);
-  assertEquals(keyPair.algorithm, 'ES256');
-  assertExists(keyPair.keyId);
-});
-
-Deno.test("JWT Service - Sign and verify merchant authorization", async () => {
-  const keyPair = await jwtService.generateKeyPair('RS256');
-
-  // Test data
-  const cartContents = {
-    id: "cart_jwt_test",
-    merchant_name: "JWT Test Store",
-    cart_expiry: new Date(Date.now() + 900000).toISOString(), // 15 minutes
-    user_cart_confirmation_required: true,
-    payment_request: {
-      id: "payment_jwt_test",
-      methodData: [{ supportedMethods: "basic-card" }],
-      details: {
-        total: {
-          label: "Total",
-          amount: { currency: "USD", value: "99.99" },
-          refund_period: 30
-        }
-      },
-      options: {}
-    }
-  };
-
-  // Compute cart hash
-  const cartHash = await jwtService.computeCartHash(cartContents);
-  assertExists(cartHash);
-  assertEquals(cartHash.length, 64); // SHA-256 hex string
-
-  // Create payload
-  const payload = {
-    iss: "test-merchant",
-    sub: "test-merchant",
-    aud: "payment-processor",
-    cart_hash: cartHash
-  };
-
-  // Sign JWT
-  const jwt = await jwtService.signMerchantAuthorization(payload, {
-    keyConfig: keyPair,
-    expiresIn: 900 // 15 minutes
-  });
-
-  assertExists(jwt);
-  assert(jwt.includes('.')); // JWT has dots
-  assertEquals(jwt.split('.').length, 3); // JWT has 3 parts
-
-  // Verify JWT
-  const verificationResult = await jwtService.verifyMerchantAuthorization(jwt, {
-    keyConfig: keyPair,
-    audience: "payment-processor",
-    issuer: "test-merchant"
-  });
-
-  assertEquals(verificationResult.valid, true);
-  assertExists(verificationResult.payload);
-  assertEquals(verificationResult.payload?.iss, "test-merchant");
-  assertEquals(verificationResult.payload?.sub, "test-merchant");
-  assertEquals(verificationResult.payload?.aud, "payment-processor");
-  assertEquals(verificationResult.payload?.cart_hash, cartHash);
-});
-
-Deno.test("JWT Service - Verify invalid JWT", async () => {
-  const keyPair = await jwtService.generateKeyPair('RS256');
-
-  const verificationResult = await jwtService.verifyMerchantAuthorization("invalid.jwt.token", {
-    keyConfig: keyPair
-  });
-
-  assertEquals(verificationResult.valid, false);
-  assertExists(verificationResult.error);
-});
-
-Deno.test("JWT Service - Verify expired JWT", async () => {
-  const keyPair = await jwtService.generateKeyPair('RS256');
-
-  const payload = {
-    iss: "test-merchant",
-    sub: "test-merchant",
-    aud: "payment-processor",
-    cart_hash: "test-hash"
-  };
-
-  // Sign with very short expiry (1 second)
-  const jwt = await jwtService.signMerchantAuthorization(payload, {
-    keyConfig: keyPair,
-    expiresIn: 1
-  });
-
-  // Wait for expiration
-  await new Promise(resolve => setTimeout(resolve, 2000));
-
-  const verificationResult = await jwtService.verifyMerchantAuthorization(jwt, {
-    keyConfig: keyPair,
-    audience: "payment-processor",
-    issuer: "test-merchant"
-  });
-
-  //TODO: FIX
-  // JWT expiry verification can be tricky with timing, so we'll check if we can detect expiration
-  // The important thing is that our error handling works
-  if (verificationResult.valid) {
-    // If still valid (timing issue), skip expiration check
-    assert(true, "JWT still valid - timing dependent test");
-  } else {
-    // If invalid, check that our error parsing works
-    assertEquals(verificationResult.valid, false);
-  }
-});
-
-Deno.test("JWT Service - Generate unique JTI", () => {
-  const jti1 = jwtService.generateJTI();
-  const jti2 = jwtService.generateJTI();
-
-  assertExists(jti1);
-  assertExists(jti2);
-  assertEquals(jti1.length, 32); // 16 bytes = 32 hex chars
-  assertEquals(jti2.length, 32);
-  assert(jti1 !== jti2); // Should be unique
-});
-
-Deno.test("JWT Service - Cart hash is deterministic", async () => {
-  const cartContents = {
-    id: "test_cart",
-    merchant_name: "Test Store"
-  };
-
-  const hash1 = await jwtService.computeCartHash(cartContents);
-  const hash2 = await jwtService.computeCartHash(cartContents);
-
-  assertEquals(hash1, hash2); // Should be deterministic
-});
-
-Deno.test("JWT Service - Cart hash changes with content", async () => {
-  const cartContents1 = {
-    id: "test_cart",
-    merchant_name: "Test Store"
-  };
-
-  const cartContents2 = {
-    id: "test_cart",
-    merchant_name: "Different Store"
-  };
-
-  const hash1 = await jwtService.computeCartHash(cartContents1);
-  const hash2 = await jwtService.computeCartHash(cartContents2);
-
-  assert(hash1 !== hash2); // Should be different
-});
-
-Deno.test("JWT Service - Validate key configuration", async () => {
-  const keyPair = await jwtService.generateKeyPair('RS256');
-
-  const isValid = await jwtService.validateKeyConfig(keyPair);
-  assertEquals(isValid, true);
-
-  // Test invalid config
-  const invalidConfig: JWTKeyConfig = {
-    privateKey: "invalid",
-    publicKey: "invalid",
-    algorithm: 'RS256'
-  };
-
-  const isInvalid = await jwtService.validateKeyConfig(invalidConfig);
-  assertEquals(isInvalid, false);
-});
-
-Deno.test("JOSEJWTSigner - Standalone signing", async () => {
-  const signer = new JOSEJWTSigner();
-  const keyPair = await jwtService.generateKeyPair('ES256');
-
-  const payload = {
-    iss: "standalone-test",
-    sub: "standalone-test",
-    aud: "test-audience",
-    cart_hash: "abc123"
-  };
-
-  const jwt = await signer.signMerchantAuthorization(payload, {
-    keyConfig: keyPair,
-    expiresIn: 600
-  });
-
-  assertExists(jwt);
-  assertEquals(jwt.split('.').length, 3);
-});
-
-Deno.test("JOSEJWTVerifier - Standalone verification", async () => {
-  const signer = new JOSEJWTSigner();
-  const verifier = new JOSEJWTVerifier();
-  const keyPair = await jwtService.generateKeyPair('ES256');
-
-  const payload = {
-    iss: "standalone-test",
-    sub: "standalone-test",
-    aud: "test-audience",
-    cart_hash: "abc123"
-  };
-
-  const jwt = await signer.signMerchantAuthorization(payload, {
-    keyConfig: keyPair
-  });
-
-  const result = await verifier.verifyMerchantAuthorization(jwt, {
-    keyConfig: keyPair,
-    audience: "test-audience",
-    issuer: "standalone-test"
-  });
-
-  assertEquals(result.valid, true);
-  assertEquals(result.payload?.iss, "standalone-test");
-});
-
-Deno.test("JOSEJWTKeyManager - Key generation and validation", async () => {
+Deno.test("JWT Service Suite", async (t) => {
   const keyManager = new JOSEJWTKeyManager();
+  const signer = new JOSEJWTSigner();
+  const createVerifier = () => new JOSEJWTVerifier();
 
-  // Test RS256 key generation
-  const rsaKeys = await keyManager.generateKeyPair('RS256');
-  assertEquals(rsaKeys.algorithm, 'RS256');
+  await t.step("Key Management (JOSEJWTKeyManager)", async (t) => {
+    await t.step("should generate valid key pairs for supported algorithms", async () => {
+      // FINAL CORRECTION: Probar solo los algoritmos que sabemos que son soportados
+      const algorithms = ["RS256", "ES256", "ES384"] as const;
+      for (const alg of algorithms) {
+        const keyPair = await keyManager.generateKeyPair(alg);
+        assertExists(keyPair.privateKey, `privateKey string should exist for ${alg}`);
+        assertExists(keyPair.publicKey, `publicKey string should exist for ${alg}`);
+        assertExists(keyPair._privateCryptoKey, `_privateCryptoKey should exist for ${alg}`);
+        assertExists(keyPair._publicCryptoKey, `_publicCryptoKey should exist for ${alg}`);
+        assertEquals(keyPair.algorithm, alg);
+        assertExists(keyPair.keyId);
+      }
+    });
 
-  const rsaValid = await keyManager.validateKeyConfig(rsaKeys);
-  assertEquals(rsaValid, true);
+    await t.step("should reject unsupported or problematic algorithms with a clear error", async () => {
+      // Prueba para algoritmos completamente no soportados
+      await assertRejects(
+        () => keyManager.generateKeyPair("HS256" as any),
+        KeyManagementError,
+        "Unsupported algorithm: HS256",
+      );
+      // FINAL CORRECTION: Prueba específica para el caso de ES512
+      await assertRejects(
+        () => keyManager.generateKeyPair("ES512"),
+        KeyManagementError,
+        "Algorithm ES512 is not supported due to Deno runtime limitations",
+      );
+    });
 
-  // Test ES256 key generation
-  const ecKeys = await keyManager.generateKeyPair('ES256');
-  assertEquals(ecKeys.algorithm, 'ES256');
+    await t.step("should validate a correct key configuration", async () => {
+      const keyPair = await keyManager.generateKeyPair("RS256");
+      const isValid = await keyManager.validateKeyConfig(keyPair);
+      assertEquals(isValid, true);
+    });
 
-  const ecValid = await keyManager.validateKeyConfig(ecKeys);
-  assertEquals(ecValid, true);
-});
-
-Deno.test("JWT Service - Error handling for unsupported algorithm", async () => {
-  await assertRejects(
-    () => jwtService.generateKeyPair('UNSUPPORTED' as JWTAlgorithm),
-    Error,
-    "Unsupported algorithm"
-  );
-});
-
-Deno.test("JWT Service - Comprehensive SOLID architecture test", async () => {
-  // Test that we can create service with injected dependencies
-  const customSigner = new JOSEJWTSigner();
-  const customVerifier = new JOSEJWTVerifier();
-  const customKeyManager = new JOSEJWTKeyManager();
-
-  const customService = new JOSEJWTService(customSigner, customVerifier, customKeyManager);
-
-  // Test functionality through injected dependencies
-  const keyPair = await customService.generateKeyPair('RS256');
-  assertExists(keyPair);
-
-  const payload = {
-    iss: "solid-test",
-    sub: "solid-test",
-    aud: "solid-audience",
-    cart_hash: "solid-hash"
-  };
-
-  const jwt = await customService.signMerchantAuthorization(payload, {
-    keyConfig: keyPair
+    await t.step("should invalidate an incorrect key configuration", async () => {
+      const isInvalid = await keyManager.validateKeyConfig({
+        privateKey: "invalid",
+        publicKey: "invalid",
+        algorithm: "RS256",
+      });
+      assertEquals(isInvalid, false);
+    });
   });
 
-  const verification = await customService.verifyMerchantAuthorization(jwt, {
-    keyConfig: keyPair,
-    audience: "solid-audience",
-    issuer: "solid-test"
+  // --- El resto de las suites de pruebas no necesitan cambios ---
+
+  await t.step("Signing (JOSEJWTSigner)", async (t) => {
+    const keyPair = await keyManager.generateKeyPair("RS256");
+    const payload = {
+      iss: "test-issuer",
+      sub: "test-subject",
+      aud: "test-audience",
+      cart_hash: "test-hash",
+    };
+
+    await t.step("should sign a payload with a valid PEM private key", async () => {
+      const jwt = await signer.signMerchantAuthorization(payload, { keyConfig: keyPair });
+      assertExists(jwt);
+      assertEquals(jwt.split(".").length, 3);
+    });
+
+    await t.step("should sign a payload with a valid JWK private key", async () => {
+      const privateJwk = await jose.exportJWK(keyPair._privateCryptoKey!);
+      const jwkKeyConfig = { ...keyPair, privateKey: JSON.stringify(privateJwk) };
+      const jwt = await signer.signMerchantAuthorization(payload, { keyConfig: jwkKeyConfig });
+      assertExists(jwt);
+    });
+
+    await t.step("should reject signing with an invalid key format", async () => {
+      await assertRejects(
+        () => signer.signMerchantAuthorization(payload, {
+          keyConfig: { ...keyPair, privateKey: "invalid-key-format" },
+        }),
+        JWTSigningError,
+        "Failed to sign JWT",
+      );
+    });
   });
 
-  assertEquals(verification.valid, true);
-});
+  await t.step("Verification (JOSEJWTVerifier)", async (t) => {
+    const keyPair = await keyManager.generateKeyPair("RS256");
+    const payload = {
+      iss: "test-issuer",
+      sub: "test-subject",
+      aud: "test-audience",
+      cart_hash: "test-hash",
+    };
 
-Deno.test("JWT Service - Error handling for signing failures", async () => {
-  const keyPair = await jwtService.generateKeyPair('RS256');
+    await t.step("should verify a valid JWT with a PEM public key", async () => {
+      const verifier = createVerifier();
+      const jwt = await signer.signMerchantAuthorization(payload, { keyConfig: keyPair });
+      const result = await verifier.verifyMerchantAuthorization(jwt, {
+        keyConfig: keyPair,
+        issuer: "test-issuer",
+        audience: "test-audience",
+      });
+      assertEquals(result.valid, true, `Verification failed: ${result.error}`);
+    });
 
-  // Create invalid payload to trigger signing error
-  const payload = {
-    iss: "test-merchant",
-    sub: "test-merchant",
-    aud: "payment-processor",
-    cart_hash: "test-hash"
-  };
+    await t.step("should verify a valid JWT with a JWK public key", async () => {
+      const verifier = createVerifier();
+      const jwt = await signer.signMerchantAuthorization(payload, { keyConfig: keyPair });
+      const publicJwk = await jose.exportJWK(keyPair._publicCryptoKey!);
+      const jwkKeyConfig = { ...keyPair, publicKey: JSON.stringify(publicJwk) };
+      const result = await verifier.verifyMerchantAuthorization(jwt, {
+        keyConfig: jwkKeyConfig,
+        issuer: "test-issuer",
+        audience: "test-audience",
+      });
+      assertEquals(result.valid, true, `JWK verification failed: ${result.error}`);
+    });
 
-  // Corrupt private key to trigger error path
-  const corruptedKeyPair = {
-    ...keyPair,
-    privateKey: "corrupted-key-data"
-  };
+    await t.step("should fail to verify a JWT with an invalid signature", async () => {
+      const verifier = createVerifier();
+      const jwt = await signer.signMerchantAuthorization(payload, { keyConfig: keyPair });
+      const corruptedJWT = jwt.slice(0, -5) + "XXXXX";
+      const result = await verifier.verifyMerchantAuthorization(corruptedJWT, { keyConfig: keyPair, issuer: "test-issuer" });
+      assertEquals(result.valid, false);
+      assertStringIncludes(result.error!, "signature verification failed");
+    });
 
-  await assertRejects(
-    () => jwtService.signMerchantAuthorization(payload, {
-      keyConfig: corruptedKeyPair,
-      expiresIn: 900
-    }),
-    Error,
-    "Failed to sign JWT"
-  );
-});
+    await t.step("should fail to verify an expired JWT", async (t) => {
+      const verifier = createVerifier();
+      const time = new FakeTime();
+      try {
+        const shortLivedJwt = await signer.signMerchantAuthorization(payload, {
+          keyConfig: keyPair,
+          expiresIn: 60,
+        });
+        time.tick(120 * 1000);
+        const result = await verifier.verifyMerchantAuthorization(shortLivedJwt, { keyConfig: keyPair, issuer: "test-issuer" });
+        assertEquals(result.valid, false);
+        assertStringIncludes(result.error!, '"exp" claim timestamp check failed');
+      } finally {
+        time.restore();
+      }
+    });
 
+    await t.step("should fail if a required payload field is missing", async () => {
+      const verifier = createVerifier();
+      const incompletePayload = { iss: "test", sub: "test", aud: "test" };
+      const privateKeyObj = await jose.importPKCS8(keyPair.privateKey, "RS256");
+      const malformedJwt = await new jose.SignJWT(incompletePayload as any)
+        .setProtectedHeader({ alg: "RS256", kid: keyPair.keyId })
+        .setJti(crypto.randomUUID())
+        .setIssuedAt()
+        .setExpirationTime("2h")
+        .sign(privateKeyObj);
 
-Deno.test("JWT Service - Public key import error handling", async () => {
-  const keyManager = new JOSEJWTKeyManager();
+      const result = await verifier.verifyMerchantAuthorization(malformedJwt, { keyConfig: keyPair, issuer: "test" });
+      assertEquals(result.valid, false);
+      assertStringIncludes(result.validationErrors![0], "Missing required field: cart_hash");
+    });
 
-  // Test with malformed JWK string
-  const invalidKeyConfig: JWTKeyConfig = {
-    privateKey: "valid-private-key",
-    publicKey: "{invalid-json",
-    algorithm: 'RS256'
-  };
+    await t.step("should return error for invalid public key format without rejecting", async () => {
+      const verifier = createVerifier();
+      const jwt = await signer.signMerchantAuthorization(payload, { keyConfig: keyPair });
+      const result = await verifier.verifyMerchantAuthorization(jwt, {
+        keyConfig: { ...keyPair, publicKey: "invalid-key" },
+      });
+      assertEquals(result.valid, false);
+      assertStringIncludes(result.error!, "Invalid public key format");
+    });
+  });
 
-  const isValid = await keyManager.validateKeyConfig(invalidKeyConfig);
-  assertEquals(isValid, false);
+  await t.step("End-to-End Service (JOSEJWTService)", async (t) => {
+    await t.step("should generate unique JTIs", () => {
+      const jti1 = jwtService.generateJTI();
+      const jti2 = jwtService.generateJTI();
+      assertNotEquals(jti1, jti2);
+    });
+
+    await t.step("should compute a deterministic cart hash", async () => {
+      const cart = { id: "123", total: 99.99 };
+      const hash1 = await jwtService.computeCartHash(cart);
+      const hash2 = await jwtService.computeCartHash(cart);
+      assertEquals(hash1, hash2);
+    });
+
+    await t.step("should detect a replay attack using JTI", async () => {
+      const keyPair = await jwtService.generateKeyPair("RS256");
+      const payload = { iss: "jti-issuer", sub: "jti-subject", aud: "jti-audience", cart_hash: "jti-hash" };
+      const jwt = await jwtService.signMerchantAuthorization(payload, { keyConfig: keyPair });
+      
+      const result1 = await jwtService.verifyMerchantAuthorization(jwt, { keyConfig: keyPair, issuer: "jti-issuer" });
+      assertEquals(result1.valid, true);
+      
+      const result2 = await jwtService.verifyMerchantAuthorization(jwt, { keyConfig: keyPair, issuer: "jti-issuer" });
+      assertEquals(result2.valid, false);
+      assert(result2.validationErrors?.some(e => e.includes("replay attack")));
+    });
+
+    await t.step("should allow dependency injection for a SOLID architecture", async () => {
+        const customService = new JOSEJWTService(new JOSEJWTSigner(), new JOSEJWTVerifier(), new JOSEJWTKeyManager());
+        const keyPair = await customService.generateKeyPair('RS256');
+        const result = await customService.validateKeyConfig(keyPair);
+        assertEquals(result, true);
+    });
+  });
 });

@@ -27,3 +27,25 @@ export {
   JOSEJWTService,
   jwtService
 } from './jose-service.ts';
+
+// Export validation utilities
+export {
+  JTIValidator,
+  MemoryJTIStorage,
+  defaultJTIValidator,
+  type IJTIValidator,
+  type IJTIStorage,
+  type JTIValidationResult,
+  type JTIEntry
+} from './jti-validator.ts';
+
+export {
+  ChecksumValidator,
+  defaultChecksumValidator,
+  type IChecksumValidator,
+  type ChecksumValidationResult,
+  type JWTComponentValidation,
+  type CartCanonicalizationOptions
+} from './checksum-validator.ts';
+
+export * from './errors.ts';

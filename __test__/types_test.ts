@@ -1,3 +1,4 @@
+ 
 /**
  * AP2 Types Test Suite
  *
@@ -5,7 +6,7 @@
  * the Google AP2 specification exactly.
  */
 
-import { assert, assertEquals, assertExists } from "@std/assert";
+import { assert, assertEquals, assertExists } from "./test_helper.ts";
 import {
   CART_MANDATE_DATA_KEY,
   INTENT_MANDATE_DATA_KEY,
@@ -15,12 +16,10 @@ import type {
   IntentMandate,
   CartContents,
   CartMandate,
-  PaymentRequest,
-  PaymentResponse,
-  PaymentItem,
   ContactAddress,
-  PaymentCurrencyAmount,
 } from "../src/mod.ts";
+import type { ExtendedPaymentItem, AP2PaymentRequest, AP2PaymentResponse } from "../src/types/mod.ts";
+
 
 Deno.test("Constants - Mandate Data Keys", () => {
   assertEquals(CART_MANDATE_DATA_KEY, "ap2.mandates.CartMandate");
@@ -41,7 +40,7 @@ Deno.test("PaymentCurrencyAmount - Valid Structure", () => {
 });
 
 Deno.test("PaymentItem - Complete Structure", () => {
-  const item: PaymentItem = {
+  const item: ExtendedPaymentItem = {
     label: "Red Basketball Shoes - Size 10",
     amount: {
       currency: "USD",
@@ -105,7 +104,7 @@ Deno.test("IntentMandate - Required and Optional Fields", () => {
 });
 
 Deno.test("PaymentRequest - Complete Structure", () => {
-  const paymentRequest: PaymentRequest = {
+  const paymentRequest: AP2PaymentRequest = {
     id: "payment-123",
     methodData: [{
       supportedMethods: "basic-card",
@@ -200,7 +199,7 @@ Deno.test("CartMandate - With Optional Signature", () => {
 });
 
 Deno.test("PaymentResponse - All Fields", () => {
-  const response: PaymentResponse = {
+  const response: AP2PaymentResponse = {
     requestId: "payment-123",
     methodName: "basic-card",
     details: {
@@ -233,7 +232,7 @@ Deno.test("PaymentResponse - All Fields", () => {
 });
 
 Deno.test("Type Immutability - Readonly Properties", () => {
-  const item: PaymentItem = {
+  const item: ExtendedPaymentItem = {
     label: "Test Item",
     amount: { currency: "USD", value: "10.00" },
     refund_period: 30,

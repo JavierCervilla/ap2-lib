@@ -1,3 +1,4 @@
+ 
 /**
  * PaymentMandate Classes Test Suite
  *
@@ -5,13 +6,12 @@
  * to achieve 100% test coverage for payment mandate implementations.
  */
 
-import { assert, assertEquals, assertExists, assertRejects } from "@std/assert";
+import { assert, assertEquals, assertExists, assertRejects } from "./test_helper.ts";
 import {
   PaymentMandateClass,
   PaymentMandateContentsClass,
 } from "../src/core/mandates/payment/mod.ts";
 import type { PaymentMandate, PaymentMandateContents } from "../src/types/mod.ts";
-import { MandateValidationError } from "../src/utils/mod.ts";
 
 // Test PaymentMandateContentsClass
 Deno.test("PaymentMandateContentsClass - Create valid contents", async () => {

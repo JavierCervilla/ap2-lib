@@ -5,8 +5,8 @@
  */
 
 import type { PaymentMandateContents } from "../../../types/payment-mandate.ts";
-import { BaseValidator, ValidationResult, createValidationResult } from "../shared/interfaces.ts";
-import { ValidationConfig, DEFAULT_VALIDATION_CONFIG } from "../../config/validation-config.ts";
+import { BaseValidator, type ValidationResult, createValidationResult } from "../shared/interfaces.ts";
+import { type ValidationConfig, DEFAULT_VALIDATION_CONFIG } from "../../config/validation-config.ts";
 
 /**
  * Validator for PaymentMandateContents entities

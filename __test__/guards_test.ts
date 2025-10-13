@@ -1,13 +1,13 @@
 /**
- * Tests for Type Guards
+ * Tests for Type Guards (Refactored)
  */
 
-import { assertEquals, assert, assertFalse } from "@std/assert";
+import { assertEquals, assert, assertFalse } from "./test_helper.ts";
 import { isIntentMandate, isCartMandate, getMandateType } from "../src/types/guards.ts";
 import { MandateType } from "../src/core/mandates/shared/mod.ts";
 import type { IntentMandate, CartMandate, Mandate } from "../src/types/mod.ts";
 
-// Test fixtures
+// --- Test Data Setup ---
 const validIntentMandate: IntentMandate = {
   natural_language_description: "Buy organic coffee beans, medium roast, 2lb bag",
   intent_expiry: "2024-12-31T23:59:59Z",
@@ -31,116 +31,98 @@ const validCartMandate: CartMandate = {
 };
 
 const unknownMandate = {
-  unknown_field: "some value",
-  other_field: 42
+  unknown_field: "some value"
 } as unknown as Mandate;
 
-// Type Guard Tests
-Deno.test("isIntentMandate - Valid IntentMandate", () => {
-  assert(isIntentMandate(validIntentMandate), "Should identify valid IntentMandate");
+
+// --- Test Suites ---
+
+Deno.test("isIntentMandate()", async (t) => {
+  await t.step("should return true for a valid IntentMandate", () => {
+    assert(isIntentMandate(validIntentMandate));
+  });
+
+  await t.step("should return false for a CartMandate", () => {
+    assertFalse(isIntentMandate(validCartMandate));
+  });
+
+  await t.step("should return false for an unknown object", () => {
+    assertFalse(isIntentMandate(unknownMandate));
+  });
 });
 
-Deno.test("isIntentMandate - CartMandate should return false", () => {
-  assertFalse(isIntentMandate(validCartMandate), "Should not identify CartMandate as IntentMandate");
+Deno.test("isCartMandate()", async (t) => {
+  await t.step("should return true for a valid CartMandate", () => {
+    assert(isCartMandate(validCartMandate));
+  });
+
+  await t.step("should return false for an IntentMandate", () => {
+    assertFalse(isCartMandate(validIntentMandate));
+  });
+
+  await t.step("should return false for an unknown object", () => {
+    assertFalse(isCartMandate(unknownMandate));
+  });
 });
 
-Deno.test("isIntentMandate - Unknown mandate should return false", () => {
-  assertFalse(isIntentMandate(unknownMandate), "Should not identify unknown mandate as IntentMandate");
+Deno.test("getMandateType()", async (t) => {
+  await t.step("should return INTENT for an IntentMandate", () => {
+    assertEquals(getMandateType(validIntentMandate), MandateType.INTENT);
+  });
+
+  await t.step("should return CART for a CartMandate", () => {
+    assertEquals(getMandateType(validCartMandate), MandateType.CART);
+  });
+
+  await t.step("should return UNKNOWN for an unknown object", () => {
+    assertEquals(getMandateType(unknownMandate), MandateType.UNKNOWN);
+  });
 });
 
-Deno.test("isCartMandate - Valid CartMandate", () => {
-  assert(isCartMandate(validCartMandate), "Should identify valid CartMandate");
+Deno.test("Type Guard Edge Cases", async (t) => {
+  await t.step("should handle partial IntentMandates correctly", () => {
+    const partialIntent = { natural_language_description: "Buy something" } as Mandate;
+    assertFalse(isIntentMandate(partialIntent), "A partial IntentMandate should not be identified as valid");
+    assertEquals(getMandateType(partialIntent), MandateType.UNKNOWN);
+  });
+
+  await t.step("should handle partial CartMandates correctly", () => {
+    const partialCart = { contents: { id: "cart-123" } } as Mandate;
+    // The current guard only checks for the presence of 'contents', so this is expected behavior.
+    assert(isCartMandate(partialCart), "A mandate with a 'contents' object should be identified as a CartMandate");
+    assertEquals(getMandateType(partialCart), MandateType.CART);
+  });
+
+  await t.step("should handle mixed-field mandates as UNKNOWN", () => {
+    const mixedMandate = {
+      natural_language_description: "Buy something",
+      contents: { id: "cart-123" }
+    } as unknown as Mandate;
+    assertFalse(isIntentMandate(mixedMandate));
+    assertFalse(isCartMandate(mixedMandate));
+    assertEquals(getMandateType(mixedMandate), MandateType.UNKNOWN);
+  });
 });
 
-Deno.test("isCartMandate - IntentMandate should return false", () => {
-  assertFalse(isCartMandate(validIntentMandate), "Should not identify IntentMandate as CartMandate");
-});
-
-Deno.test("isCartMandate - Unknown mandate should return false", () => {
-  assertFalse(isCartMandate(unknownMandate), "Should not identify unknown mandate as CartMandate");
-});
-
-// getMandateType Tests
-Deno.test("getMandateType - IntentMandate", () => {
-  assertEquals(getMandateType(validIntentMandate), MandateType.INTENT);
-});
-
-Deno.test("getMandateType - CartMandate", () => {
-  assertEquals(getMandateType(validCartMandate), MandateType.CART);
-});
-
-Deno.test("getMandateType - Unknown mandate", () => {
-  assertEquals(getMandateType(unknownMandate), MandateType.UNKNOWN);
-});
-
-// Edge Cases
-Deno.test("Type guards with partial IntentMandate", () => {
-  const partialIntent = {
-    natural_language_description: "Buy something"
-    // Missing intent_expiry
-  } as Mandate;
-
-  assertFalse(isIntentMandate(partialIntent), "Should not identify partial IntentMandate");
-  assertEquals(getMandateType(partialIntent), MandateType.UNKNOWN);
-});
-
-Deno.test("Type guards with partial CartMandate", () => {
-  const partialCart = {
-    contents: {
-      id: "cart-123"
-      // Missing other required fields
+Deno.test("TypeScript Type Narrowing", async (t) => {
+  await t.step("should correctly narrow type to IntentMandate", () => {
+    const mandate: Mandate = validIntentMandate;
+    if (isIntentMandate(mandate)) {
+      // This block proves TypeScript understands the type.
+      assertEquals(typeof mandate.natural_language_description, "string");
+    } else {
+      assert(false, "isIntentMandate() failed to identify a valid IntentMandate");
     }
-  } as Mandate;
+  });
 
-  // Since we only check for presence of 'contents' field, this should still be identified as CART
-  assert(isCartMandate(partialCart), "Should identify mandate with contents as CartMandate");
-  assertEquals(getMandateType(partialCart), MandateType.CART);
-});
-
-// Mixed fields (should be detected as UNKNOWN due to conflicting fields)
-Deno.test("Type guards with mixed mandate fields", () => {
-  const mixedMandate = {
-    natural_language_description: "Buy something",
-    intent_expiry: "2024-12-31T23:59:59Z",
-    contents: {
-      id: "cart-123",
-      merchant_name: "Test Store"
+  await t.step("should correctly narrow type to CartMandate", () => {
+    const mandate: Mandate = validCartMandate;
+    if (isCartMandate(mandate)) {
+      // This block proves TypeScript understands the type.
+      assertEquals(typeof mandate.contents, "object");
+      assert(mandate.contents !== null);
+    } else {
+      assert(false, "isCartMandate() failed to identify a valid CartMandate");
     }
-  } as Mandate;
-
-  // Should be detected as unknown because it has both intent and cart fields
-  assertFalse(isIntentMandate(mixedMandate), "Should not identify mixed mandate as IntentMandate");
-  assertFalse(isCartMandate(mixedMandate), "Should not identify mixed mandate as CartMandate");
-  assertEquals(getMandateType(mixedMandate), MandateType.UNKNOWN);
-});
-
-// TypeScript compilation tests (these test that the type guards work at compile time)
-Deno.test("Type guards provide proper TypeScript narrowing", () => {
-  const mandate: Mandate = validIntentMandate;
-
-  if (isIntentMandate(mandate)) {
-    // TypeScript should know mandate is IntentMandate here
-    assertEquals(typeof mandate.natural_language_description, "string");
-    assertEquals(typeof mandate.intent_expiry, "string");
-  }
-
-  if (isCartMandate(mandate)) {
-    // This won't execute for validIntentMandate, but TypeScript should know mandate is CartMandate here
-    assert(false, "This should not execute for IntentMandate");
-  }
-});
-
-Deno.test("Type guards work with CartMandate TypeScript narrowing", () => {
-  const mandate: Mandate = validCartMandate;
-
-  if (isCartMandate(mandate)) {
-    // TypeScript should know mandate is CartMandate here
-    assertEquals(typeof mandate.contents, "object");
-    assert(mandate.contents !== null);
-  }
-
-  if (isIntentMandate(mandate)) {
-    // This won't execute for validCartMandate
-    assert(false, "This should not execute for CartMandate");
-  }
+  });
 });

@@ -4,15 +4,15 @@
  * Specialized validator for PaymentRequest entities following the Single Responsibility Principle.
  */
 
-import type { PaymentRequest } from "../../../types/mod.ts";
-import { BaseValidator, ValidationResult, createValidationResult, combineValidationResults } from "./interfaces.ts";
+import type { AP2PaymentRequest } from "../../../types/mod.ts";
+import { BaseValidator, type ValidationResult, createValidationResult } from "./interfaces.ts";
 import {
   NonEmptyArrayRule,
   CurrencyValidationRule,
   PositiveAmountRule,
   NumericRangeRule,
 } from "./rules.ts";
-import { ValidationConfig, DEFAULT_VALIDATION_CONFIG } from "../../config/validation-config.ts";
+import { type ValidationConfig, DEFAULT_VALIDATION_CONFIG } from "../../config/validation-config.ts";
 import {
   PAYMENT_MESSAGES,
 } from "../../config/validation-messages.ts";
@@ -21,7 +21,7 @@ import { ValidationMessageFormatter } from "../../config/validation-messages.ts"
 /**
  * Validator for PaymentRequest entities
  */
-export class PaymentRequestValidator extends BaseValidator<PaymentRequest> {
+export class PaymentRequestValidator extends BaseValidator<AP2PaymentRequest> {
   private readonly config: ValidationConfig;
 
   constructor(config: ValidationConfig = DEFAULT_VALIDATION_CONFIG) {
@@ -46,7 +46,7 @@ export class PaymentRequestValidator extends BaseValidator<PaymentRequest> {
   /**
    * Validate PaymentRequest structure and content
    */
-  async validate(paymentRequest: PaymentRequest): Promise<ValidationResult> {
+  async validate(paymentRequest: AP2PaymentRequest): Promise<ValidationResult> {
     const errors: string[] = [];
 
     // Validate basic rules
@@ -140,7 +140,7 @@ export class PaymentRequestValidator extends BaseValidator<PaymentRequest> {
   /**
    * Validate the integrity of PaymentRequest by checking required fields
    */
-  async validateIntegrity(paymentRequest: PaymentRequest): Promise<ValidationResult> {
+  async validateIntegrity(paymentRequest: AP2PaymentRequest): Promise<ValidationResult> {
     const errors: string[] = [];
 
     // Check required field existence
@@ -158,7 +158,7 @@ export class PaymentRequestValidator extends BaseValidator<PaymentRequest> {
   /**
    * PaymentRequest doesn't have expiry, so always return false
    */
-  async checkExpiry(_paymentRequest: PaymentRequest, _currentDate = new Date()): Promise<boolean> {
+  async checkExpiry(_paymentRequest: AP2PaymentRequest, _currentDate = new Date()): Promise<boolean> {
     return false;
   }
 
@@ -172,21 +172,21 @@ export class PaymentRequestValidator extends BaseValidator<PaymentRequest> {
   /**
    * Static method to validate PaymentRequest with default config
    */
-  static async validate(paymentRequest: PaymentRequest): Promise<ValidationResult> {
+  static async validate(paymentRequest: AP2PaymentRequest): Promise<ValidationResult> {
     return await PaymentRequestValidator.withConfig(DEFAULT_VALIDATION_CONFIG).validate(paymentRequest);
   }
 
   /**
    * Static method to validate PaymentRequest integrity with default config
    */
-  static async validateIntegrity(paymentRequest: PaymentRequest): Promise<ValidationResult> {
+  static async validateIntegrity(paymentRequest: AP2PaymentRequest): Promise<ValidationResult> {
     return await PaymentRequestValidator.withConfig(DEFAULT_VALIDATION_CONFIG).validateIntegrity(paymentRequest);
   }
 
   /**
    * Static method to check PaymentRequest expiry with default config
    */
-  static async checkExpiry(paymentRequest: PaymentRequest, currentDate = new Date()): Promise<boolean> {
+  static async checkExpiry(paymentRequest: AP2PaymentRequest, currentDate = new Date()): Promise<boolean> {
     return await PaymentRequestValidator.withConfig(DEFAULT_VALIDATION_CONFIG).checkExpiry(paymentRequest, currentDate);
   }
 }

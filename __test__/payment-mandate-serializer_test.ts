@@ -1,3 +1,4 @@
+ 
 /**
  * PaymentMandate Serializer Test Suite
  *
@@ -5,7 +6,7 @@
  * Tests serialization, deserialization, validation, and error handling.
  */
 
-import { assert, assertEquals, assertExists, assertRejects } from "@std/assert";
+import { assert, assertEquals, assertExists, assertRejects } from "./test_helper.ts";
 import { PaymentMandateSerializer } from "../src/core/mandates/payment/mod.ts";
 import type { PaymentMandate, PaymentMandateContents } from "../src/types/mod.ts";
 

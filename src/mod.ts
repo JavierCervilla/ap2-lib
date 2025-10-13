@@ -1,3 +1,4 @@
+/// <reference types="./types/deno.d.ts" />
 /**
  * AP2 Library - Agent Payments Protocol
  * Main module exports

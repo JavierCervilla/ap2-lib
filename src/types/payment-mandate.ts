@@ -5,7 +5,7 @@
  * Used for visibility into agentic transactions in the payments ecosystem.
  */
 
-import type { PaymentItem, PaymentResponse } from "./payment_request.ts";
+import type { ExtendedPaymentItem, AP2PaymentResponse } from "./payment_request.ts";
 
 /**
  * The data contents of a PaymentMandate
@@ -18,10 +18,10 @@ export interface PaymentMandateContents {
   payment_details_id: string;
 
   /** The total payment amount */
-  payment_details_total: PaymentItem;
+  payment_details_total: ExtendedPaymentItem;
 
   /** The payment response containing details of the payment method chosen by the user */
-  payment_response: PaymentResponse;
+  payment_response: AP2PaymentResponse;
 
   /** Identifier for the merchant */
   merchant_agent: string;

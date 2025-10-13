@@ -70,6 +70,7 @@ export function createFutureISO8601(secondsFromNow: number): string {
  * Convenience constants for common time periods in seconds
  */
 export const TIME_CONSTANTS = {
+  SECOND: 1,
   MINUTE: 60,
   HOUR: 60 * 60,
   DAY: 60 * 60 * 24,

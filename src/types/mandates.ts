@@ -6,7 +6,7 @@
  * cart contents in the Agent Payments Protocol.
  */
 
-import type { PaymentRequest } from "./payment_request.ts";
+import type { AP2PaymentRequest } from "./payment_request.ts";
 import type { PaymentMandate } from "./payment-mandate.ts";
 
 /**
@@ -119,7 +119,7 @@ export interface CartContents {
    * Contains all the payment details including items, totals, shipping options,
    * and payment methods accepted by the merchant.
    */
-  readonly payment_request: PaymentRequest;
+  readonly payment_request: AP2PaymentRequest;
 
   /**
    * When this cart expires, in ISO 8601 format.

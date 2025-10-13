@@ -1,3 +1,4 @@
+ 
 /**
  * Validation Config Test Suite
  *
@@ -5,7 +6,7 @@
  * to achieve 100% coverage, including error handling scenarios.
  */
 
-import { assert, assertEquals, assertExists } from "@std/assert";
+import { assert, assertEquals, assertExists } from "./test_helper.ts";
 import { DEFAULT_VALIDATION_CONFIG } from "../src/core/config/validation-config.ts";
 
 Deno.test("ValidationConfig - DEFAULT_VALIDATION_CONFIG exists and has correct structure", () => {
