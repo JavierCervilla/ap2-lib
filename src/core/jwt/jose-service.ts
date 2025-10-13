@@ -24,13 +24,11 @@ import type {
 } from './interfaces.ts';
 
 import {
-  JTIValidator,
   defaultJTIValidator,
   type IJTIValidator
 } from './jti-validator.ts';
 
 import {
-  ChecksumValidator,
   defaultChecksumValidator,
   type IChecksumValidator
 } from './checksum-validator.ts';
@@ -92,7 +90,7 @@ export class JOSEJWTSigner implements IJWTSigner {
     }
   }
 
-  private async generateJTI(): Promise<string> {
+  private generateJTI(): string {
     // Use Web Crypto API for web-friendly random generation
     const randomBytes = crypto.getRandomValues(new Uint8Array(16));
     return bytesToHex(randomBytes);
@@ -349,14 +347,14 @@ export class JOSEJWTService implements IJWTService {
     private keyManager: IJWTKeyManager = new JOSEJWTKeyManager()
   ) {}
 
-  async signMerchantAuthorization(
+  signMerchantAuthorization(
     payload: Omit<MerchantAuthorizationPayload, 'iat' | 'exp' | 'jti'>,
     options: JWTSignOptions
   ): Promise<string> {
     return this.signer.signMerchantAuthorization(payload, options);
   }
 
-  async verifyMerchantAuthorization(
+  verifyMerchantAuthorization(
     jwt: string,
     options: JWTVerifyOptions
   ): Promise<JWTVerificationResult> {
@@ -370,21 +368,16 @@ export class JOSEJWTService implements IJWTService {
   }
 
   async computeCartHash(cartContents: unknown): Promise<string> {
-    // Create canonical JSON representation
-    const canonicalJson = JSON.stringify(cartContents, Object.keys(cartContents as Record<string, unknown>).sort());
-
-    // Compute SHA-256 hash
-    const hash = sha256(new TextEncoder().encode(canonicalJson));
-
-    return bytesToHex(hash);
+    const cartHash = await defaultChecksumValidator.computeRobustCartHash(cartContents);
+    return cartHash;
   }
 
   // Delegate key management operations
-  async generateKeyPair(algorithm: JWTAlgorithm): Promise<JWTKeyConfig> {
+  generateKeyPair(algorithm: JWTAlgorithm): Promise<JWTKeyConfig> {
     return this.keyManager.generateKeyPair(algorithm);
   }
 
-  async validateKeyConfig(keyConfig: JWTKeyConfig): Promise<boolean> {
+  validateKeyConfig(keyConfig: JWTKeyConfig): Promise<boolean> {
     return this.keyManager.validateKeyConfig(keyConfig);
   }
 }

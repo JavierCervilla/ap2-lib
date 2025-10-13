@@ -1,5 +1,5 @@
 /**
- * Comprehensive Checksum Validator
+ * Comprehensive Checksum Validator (Final Corrected Version)
  *
  * Implements multi-level checksum validation for JWT tokens and cart contents.
  * Provides enhanced integrity verification beyond basic signature checking.
@@ -9,113 +9,92 @@ import { sha256 } from '@noble/hashes/sha2.js';
 import { bytesToHex } from '@noble/hashes/utils.js';
 import type { MerchantAuthorizationPayload } from './interfaces.ts';
 
-/**
- * Checksum validation result with detailed information
- */
+// --- Interfaces (sin cambios) ---
 export interface ChecksumValidationResult {
-  /** Overall validation result */
   valid: boolean;
-  /** Specific validation results for different components */
-  components: {
-    /** JWT header checksum validation */
-    header: boolean;
-    /** JWT payload checksum validation */
-    payload: boolean;
-    /** Cart hash integrity validation */
-    cartHash: boolean;
-    /** Payload structure validation */
-    structure: boolean;
-  };
-  /** Detailed error messages */
+  components: { header: boolean; payload: boolean; cartHash: boolean; structure: boolean; };
   errors: string[];
-  /** Computed checksums for debugging */
-  checksums?: {
-    expectedCartHash: string;
-    actualCartHash: string;
-    payloadChecksum: string;
-    headerChecksum: string;
-  };
+  checksums?: { expectedCartHash: string; actualCartHash: string; payloadChecksum: string; headerChecksum: string; };
 }
-
-/**
- * JWT component validation result
- */
 export interface JWTComponentValidation {
-  /** Whether the component is valid */
   valid: boolean;
-  /** Component type */
   type: 'header' | 'payload' | 'signature';
-  /** Checksum of the component */
   checksum: string;
-  /** Error message if invalid */
   error?: string;
 }
-
-/**
- * Interface for comprehensive checksum validation
- */
 export interface IChecksumValidator {
-  /**
-   * Validate complete JWT checksum integrity
-   */
-  validateJWTChecksums(
-    jwt: string,
-    expectedCartContents: unknown,
-    payload?: MerchantAuthorizationPayload
-  ): Promise<ChecksumValidationResult>;
-
-  /**
-   * Validate individual JWT components
-   */
+  validateJWTChecksums(jwt: string, expectedCartContents: unknown, payload?: MerchantAuthorizationPayload): Promise<ChecksumValidationResult>;
   validateJWTComponents(jwt: string): Promise<JWTComponentValidation[]>;
-
-  /**
-   * Compute comprehensive cart hash with canonicalization
-   */
-  computeRobustCartHash(cartContents: unknown): Promise<string>;
-
-  /**
-   * Validate payload structure and required fields
-   */
-  validatePayloadStructure(payload: MerchantAuthorizationPayload): Promise<boolean>;
+  computeRobustCartHash(cartContents: unknown): string;
+  validatePayloadStructure(payload: MerchantAuthorizationPayload): boolean;
 }
-
-/**
- * Enhanced cart canonicalization options
- */
 export interface CartCanonicalizationOptions {
-  /** Sort object keys recursively */
   sortKeys?: boolean;
-  /** Remove undefined values */
   removeUndefined?: boolean;
-  /** Normalize whitespace in strings */
   normalizeWhitespace?: boolean;
-  /** Sort arrays consistently */
   sortArrays?: boolean;
 }
 
 /**
- * Comprehensive Checksum Validator implementation
- * Provides multi-level integrity verification for JWT tokens
+ * Valida recursivamente un objeto contra los límites de profundidad y número de propiedades.
+ * @returns Un array de strings de error. Vacío si es válido.
  */
+function validateObjectLimits(
+  obj: unknown,
+  options: { maxDepth: number; maxProperties: number },
+  currentDepth = 1
+): string[] {
+  if (obj === null || typeof obj !== 'object') {
+    return [];
+  }
+  if (currentDepth > options.maxDepth) {
+    return [`Object exceeds max depth of ${options.maxDepth}`];
+  }
+
+  if (Array.isArray(obj)) {
+    for (const item of obj) {
+      const errors = validateObjectLimits(item, options, currentDepth + 1);
+      if (errors.length > 0) return errors;
+    }
+  } else {
+    const keys = Object.keys(obj);
+    if (keys.length > options.maxProperties) {
+      return [`Object exceeds property limit of ${options.maxProperties}`];
+    }
+    for (const key of keys) {
+      const errors = validateObjectLimits((obj as Record<string, unknown>)[key], options, currentDepth + 1);
+      if (errors.length > 0) return errors;
+    }
+  }
+  return [];
+}
+
 export class ChecksumValidator implements IChecksumValidator {
+  private config: {
+    strictMode: boolean;
+    maxObjectDepth: number;
+    maxObjectProperties: number;
+    canonicalization: Required<CartCanonicalizationOptions>;
+  };
+
   constructor(
-    private options: {
-      /** Enable strict mode for enhanced validation */
+    options: {
       strictMode?: boolean;
-      /** Cart canonicalization options */
+      maxObjectDepth?: number;
+      maxObjectProperties?: number;
       canonicalization?: CartCanonicalizationOptions;
     } = {}
   ) {
-    this.options = {
-      strictMode: true,
+    this.config = {
+      strictMode: options.strictMode ?? true,
+      maxObjectDepth: options.maxObjectDepth ?? 10,
+      maxObjectProperties: options.maxObjectProperties ?? 100,
       canonicalization: {
-        sortKeys: true,
-        removeUndefined: true,
-        normalizeWhitespace: true,
-        sortArrays: false
-      },
-      ...options
+        sortKeys: options.canonicalization?.sortKeys ?? true,
+        removeUndefined: options.canonicalization?.removeUndefined ?? true,
+        normalizeWhitespace: options.canonicalization?.normalizeWhitespace ?? true,
+        sortArrays: options.canonicalization?.sortArrays ?? false,
+      }
     };
   }
 
@@ -126,374 +105,179 @@ export class ChecksumValidator implements IChecksumValidator {
   ): Promise<ChecksumValidationResult> {
     const result: ChecksumValidationResult = {
       valid: false,
-      components: {
-        header: false,
-        payload: false,
-        cartHash: false,
-        structure: false
-      },
+      components: { header: false, payload: false, cartHash: false, structure: false },
       errors: [],
-      checksums: {
-        expectedCartHash: '',
-        actualCartHash: '',
-        payloadChecksum: '',
-        headerChecksum: ''
-      }
+      checksums: { expectedCartHash: '', actualCartHash: '', payloadChecksum: '', headerChecksum: '' }
     };
 
     try {
-      // Validate JWT format
+      if (this.config.strictMode) {
+        const limitErrors = validateObjectLimits(expectedCartContents, {
+          maxDepth: this.config.maxObjectDepth,
+          maxProperties: this.config.maxObjectProperties,
+        });
+        if (limitErrors.length > 0) {
+          result.errors.push(...limitErrors);
+          return result; // Falla inmediatamente
+        }
+      }
+
       const parts = jwt.split('.');
       if (parts.length !== 3) {
         result.errors.push('Invalid JWT format - must have 3 parts');
         return result;
       }
+      const [, payloadB64, ] = parts;
 
-      const [headerB64, payloadB64, signatureB64] = parts;
-
-      // Validate JWT components
       const componentValidations = await this.validateJWTComponents(jwt);
-      const headerValidation = componentValidations.find(v => v.type === 'header');
-      const payloadValidation = componentValidations.find(v => v.type === 'payload');
+      const headerValidation = componentValidations.find(v => v.type === 'header')!;
+      const payloadValidation = componentValidations.find(v => v.type === 'payload')!;
 
-      if (headerValidation) {
-        result.components.header = headerValidation.valid;
-        result.checksums!.headerChecksum = headerValidation.checksum;
-        if (!headerValidation.valid) {
-          result.errors.push(headerValidation.error || 'Header validation failed');
-        }
-      }
+      result.components.header = headerValidation.valid;
+      result.checksums!.headerChecksum = headerValidation.checksum;
+      if (!headerValidation.valid) result.errors.push(headerValidation.error || 'Header validation failed');
 
-      if (payloadValidation) {
-        result.components.payload = payloadValidation.valid;
-        result.checksums!.payloadChecksum = payloadValidation.checksum;
-        if (!payloadValidation.valid) {
-          result.errors.push(payloadValidation.error || 'Payload validation failed');
-        }
-      }
+      result.components.payload = payloadValidation.valid;
+      result.checksums!.payloadChecksum = payloadValidation.checksum;
+      if (!payloadValidation.valid) result.errors.push(payloadValidation.error || 'Payload validation failed');
 
-      // Decode and validate payload if not provided
       let actualPayload = payload;
       if (!actualPayload) {
         try {
-          const decodedPayload = JSON.parse(atob(payloadB64));
-          actualPayload = decodedPayload as MerchantAuthorizationPayload;
-        } catch (error) {
+          actualPayload = JSON.parse(atob(payloadB64)) as MerchantAuthorizationPayload;
+        } catch (_error) {
           result.errors.push('Failed to decode JWT payload');
           return result;
         }
       }
 
-      // Validate payload structure
       result.components.structure = await this.validatePayloadStructure(actualPayload);
-      if (!result.components.structure) {
-        result.errors.push('Invalid payload structure - missing required fields');
-      }
+      if (!result.components.structure) result.errors.push('Invalid payload structure');
 
-      // Validate cart hash integrity
-      if (actualPayload.cart_hash && expectedCartContents) {
+      if (actualPayload.cart_hash) {
         const expectedCartHash = await this.computeRobustCartHash(expectedCartContents);
         const actualCartHash = actualPayload.cart_hash;
-
         result.checksums!.expectedCartHash = expectedCartHash;
         result.checksums!.actualCartHash = actualCartHash;
-
         result.components.cartHash = expectedCartHash === actualCartHash;
         if (!result.components.cartHash) {
-          result.errors.push(`Cart hash mismatch - expected: ${expectedCartHash}, actual: ${actualCartHash}`);
-
-          // In strict mode, perform additional integrity checks
-          if (this.options.strictMode) {
-            await this.performStrictIntegrityChecks(expectedCartContents, actualPayload, result);
-          }
+          result.errors.push(`Cart hash mismatch`);
         }
-      } else if (this.options.strictMode) {
-        result.errors.push('Missing cart hash or expected cart contents for validation');
+      } else {
+        result.errors.push('Missing cart_hash in JWT payload');
       }
 
-      // Overall validation result
-      result.valid = result.components.header &&
-                    result.components.payload &&
-                    result.components.cartHash &&
-                    result.components.structure;
-
+      result.valid = result.components.header && result.components.payload && result.components.cartHash && result.components.structure;
     } catch (error) {
       result.errors.push(`Checksum validation error: ${error instanceof Error ? error.message : String(error)}`);
     }
-
     return result;
   }
 
   async validateJWTComponents(jwt: string): Promise<JWTComponentValidation[]> {
     const results: JWTComponentValidation[] = [];
-
     try {
       const parts = jwt.split('.');
-      if (parts.length !== 3) {
-        return [{
-          valid: false,
-          type: 'header',
-          checksum: '',
-          error: 'Invalid JWT format'
-        }];
-      }
-
+      if (parts.length !== 3) throw new Error('Invalid JWT format');
       const [headerB64, payloadB64, signatureB64] = parts;
 
-      // Validate header component
       try {
         const headerJson = atob(headerB64);
         const header = JSON.parse(headerJson);
-        const headerChecksum = bytesToHex(sha256(new TextEncoder().encode(headerJson)));
-
         results.push({
           valid: this.isValidJWTHeader(header),
           type: 'header',
-          checksum: headerChecksum,
+          checksum: bytesToHex(sha256(new TextEncoder().encode(headerJson))),
           error: this.isValidJWTHeader(header) ? undefined : 'Invalid JWT header structure'
         });
-      } catch (error) {
-        results.push({
-          valid: false,
-          type: 'header',
-          checksum: '',
-          error: `Header validation failed: ${error instanceof Error ? error.message : String(error)}`
-        });
-      }
+      } catch (e: unknown) { results.push({ valid: false, type: 'header', checksum: '', error: `Header validation failed: ${e instanceof Error ? e.message : String(e)}` }); }
 
-      // Validate payload component
       try {
         const payloadJson = atob(payloadB64);
         const payload = JSON.parse(payloadJson);
-        const payloadChecksum = bytesToHex(sha256(new TextEncoder().encode(payloadJson)));
-
         results.push({
           valid: await this.validatePayloadStructure(payload),
           type: 'payload',
-          checksum: payloadChecksum,
+          checksum: bytesToHex(sha256(new TextEncoder().encode(payloadJson))),
           error: await this.validatePayloadStructure(payload) ? undefined : 'Invalid JWT payload structure'
         });
-      } catch (error) {
-        results.push({
-          valid: false,
-          type: 'payload',
-          checksum: '',
-          error: `Payload validation failed: ${error instanceof Error ? error.message : String(error)}`
-        });
-      }
+      } catch (e: unknown) { results.push({ valid: false, type: 'payload', checksum: '', error: `Payload validation failed: ${e instanceof Error ? e.message : String(e)}` }); }
 
-      // Validate signature component (basic format check)
       try {
-        // Basic signature format validation
-        const signatureValid = this.isValidBase64Url(signatureB64);
-        const signatureChecksum = bytesToHex(sha256(new TextEncoder().encode(signatureB64)));
-
         results.push({
-          valid: signatureValid,
+          valid: this.isValidBase64Url(signatureB64),
           type: 'signature',
-          checksum: signatureChecksum,
-          error: signatureValid ? undefined : 'Invalid signature format'
+          checksum: bytesToHex(sha256(new TextEncoder().encode(signatureB64))),
+          error: this.isValidBase64Url(signatureB64) ? undefined : 'Invalid signature format'
         });
-      } catch (error) {
-        results.push({
-          valid: false,
-          type: 'signature',
-          checksum: '',
-          error: `Signature validation failed: ${error instanceof Error ? error.message : String(error)}`
-        });
-      }
+      } catch (e: unknown) { results.push({ valid: false, type: 'signature', checksum: '', error: `Signature validation failed: ${e instanceof Error ? e.message : String(e)}` }); }
 
-    } catch (error) {
-      results.push({
-        valid: false,
-        type: 'header',
-        checksum: '',
-        error: `JWT component validation failed: ${error instanceof Error ? error.message : String(error)}`
-      });
-    }
-
+    } catch (e: unknown) { results.push({ valid: false, type: 'header', checksum: '', error: `JWT component validation failed: ${e instanceof Error ? e.message : String(e)}` }); }
     return results;
   }
 
-  async computeRobustCartHash(cartContents: unknown): Promise<string> {
+  computeRobustCartHash(cartContents: unknown): string {
     try {
-      // Create canonical representation with enhanced options
-      const canonicalContents = this.canonicalizeCartContents(cartContents);
-
-      // Convert to JSON string with sorted keys
-      const canonicalJson = JSON.stringify(canonicalContents, this.getSortedKeysReplacer());
-
-      // Compute SHA-256 hash
+      const canonicalObject = this.canonicalizeCartContents(cartContents);
+      const canonicalJson = JSON.stringify(canonicalObject);
       const hash = sha256(new TextEncoder().encode(canonicalJson));
-
       return bytesToHex(hash);
     } catch (error) {
       throw new Error(`Failed to compute robust cart hash: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
-  async validatePayloadStructure(payload: MerchantAuthorizationPayload): Promise<boolean> {
+  validatePayloadStructure(payload: MerchantAuthorizationPayload): boolean {
     try {
-      // Basic required fields - more lenient check for compatibility
-      const basicFields = ['iss', 'sub', 'aud'];
-
-      for (const field of basicFields) {
-        if (!(field in payload)) {
-          return false;
-        }
+      const requiredFields = ['iss', 'sub', 'aud', 'cart_hash'];
+      for (const field of requiredFields) {
+        if (typeof (payload as any)[field] !== 'string' || !(payload as any)[field]) return false;
       }
-
-      // Validate basic field types
-      if (typeof payload.iss !== 'string' || payload.iss.length === 0) return false;
-      if (typeof payload.sub !== 'string' || payload.sub.length === 0) return false;
-      if (typeof payload.aud !== 'string' || payload.aud.length === 0) return false;
-
-      // Optional but recommended fields - check if present
-      if (payload.iat !== undefined) {
-        if (typeof payload.iat !== 'number' || payload.iat <= 0) return false;
-      }
-
-      if (payload.exp !== undefined) {
-        if (typeof payload.exp !== 'number' || payload.exp <= 0) return false;
-        // Only validate timestamp relationship if both are present
-        if (payload.iat !== undefined && payload.exp <= payload.iat) return false;
-      }
-
-      if (payload.jti !== undefined) {
-        if (typeof payload.jti !== 'string' || !/^[0-9a-f]{32}$/i.test(payload.jti)) return false;
-      }
-
-      if (payload.cart_hash !== undefined) {
-        if (typeof payload.cart_hash !== 'string' || payload.cart_hash.length !== 64) return false;
-      }
-
+      if (payload.iat !== undefined && typeof payload.iat !== 'number') return false;
+      if (payload.exp !== undefined && typeof payload.exp !== 'number') return false;
+      if (payload.iat && payload.exp && payload.exp <= payload.iat) return false;
       return true;
-    } catch {
-      return false;
-    }
+    } catch { return false; }
   }
 
   private canonicalizeCartContents(contents: unknown): unknown {
-    const options = this.options.canonicalization!;
-
+    const options = this.config.canonicalization;
     if (contents === null || typeof contents !== 'object') {
+      if (typeof contents === 'string' && options.normalizeWhitespace) {
+        return contents.trim().replace(/\s+/g, ' ');
+      }
       return contents;
     }
-
     if (Array.isArray(contents)) {
       const canonicalized = contents.map(item => this.canonicalizeCartContents(item));
-      return options.sortArrays ? canonicalized.sort() : canonicalized;
+      if (options.sortArrays) {
+        canonicalized.sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
+      }
+      return canonicalized;
     }
-
     const obj = contents as Record<string, unknown>;
     const result: Record<string, unknown> = {};
-
-    // Get keys and optionally sort them
     const keys = options.sortKeys ? Object.keys(obj).sort() : Object.keys(obj);
-
     for (const key of keys) {
       const value = obj[key];
-
-      // Remove undefined values if requested
-      if (value === undefined && options.removeUndefined) {
-        continue;
-      }
-
-      // Normalize whitespace in strings if requested
-      if (typeof value === 'string' && options.normalizeWhitespace) {
-        result[key] = value.trim().replace(/\s+/g, ' ');
-      } else {
-        result[key] = this.canonicalizeCartContents(value);
-      }
+      if (value === undefined && options.removeUndefined) continue;
+      result[key] = this.canonicalizeCartContents(value);
     }
-
     return result;
-  }
-
-  private getSortedKeysReplacer() {
-    return (key: string, value: unknown) => {
-      if (value && typeof value === 'object' && !Array.isArray(value)) {
-        const sortedObj: Record<string, unknown> = {};
-        Object.keys(value).sort().forEach(sortedKey => {
-          sortedObj[sortedKey] = (value as Record<string, unknown>)[sortedKey];
-        });
-        return sortedObj;
-      }
-      return value;
-    };
   }
 
   private isValidJWTHeader(header: unknown): boolean {
     if (!header || typeof header !== 'object') return false;
-
     const h = header as Record<string, unknown>;
-
-    // Must have alg field
     if (!h.alg || typeof h.alg !== 'string') return false;
-
-    // Optional typ field should be 'JWT' if present
     if (h.typ && h.typ !== 'JWT') return false;
-
-    // Algorithm should be one of the supported ones
     const supportedAlgs = ['RS256', 'RS384', 'RS512', 'ES256', 'ES384', 'ES512'];
     return supportedAlgs.includes(h.alg);
   }
 
   private isValidBase64Url(str: string): boolean {
-    // Base64URL should only contain URL-safe characters
     return /^[A-Za-z0-9_-]+$/.test(str) && str.length > 0;
-  }
-
-  private async performStrictIntegrityChecks(
-    expectedContents: unknown,
-    payload: MerchantAuthorizationPayload,
-    result: ChecksumValidationResult
-  ): Promise<void> {
-    // Additional integrity checks in strict mode
-
-    // Check if cart contents have been tampered with structurally
-    try {
-      const expectedSerialized = JSON.stringify(expectedContents);
-      const expectedLength = expectedSerialized.length;
-
-      if (expectedLength === 0) {
-        result.errors.push('Strict mode: Empty cart contents detected');
-      }
-
-      // Check for suspicious modifications
-      if (typeof expectedContents === 'object' && expectedContents !== null) {
-        const obj = expectedContents as Record<string, unknown>;
-
-        // Check for suspicious large objects that might indicate injection
-        if (Object.keys(obj).length > 1000) {
-          result.errors.push('Strict mode: Unusually large cart object detected');
-        }
-
-        // Check for nested depth that might indicate attack
-        const depth = this.getObjectDepth(obj);
-        if (depth > 10) {
-          result.errors.push('Strict mode: Excessive object nesting detected');
-        }
-      }
-
-    } catch (error) {
-      result.errors.push(`Strict mode integrity check failed: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  }
-
-  private getObjectDepth(obj: unknown, currentDepth = 0): number {
-    if (obj === null || typeof obj !== 'object') return currentDepth;
-
-    if (Array.isArray(obj)) {
-      return Math.max(...obj.map(item => this.getObjectDepth(item, currentDepth + 1)));
-    }
-
-    const depths = Object.values(obj as Record<string, unknown>)
-      .map(value => this.getObjectDepth(value, currentDepth + 1));
-
-    return depths.length === 0 ? currentDepth : Math.max(...depths);
   }
 }
 
-// Export default instance
 export const defaultChecksumValidator = new ChecksumValidator();
