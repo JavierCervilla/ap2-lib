@@ -1,0 +1,208 @@
+name: 📦 Build & Publish
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "src/**"
+      - "deno.jsonc"
+      - "scripts/**"
+      - ".github/workflows/publish.yml"
+      - ".releaserc.json"
+  pull_request:
+    branches: [main, master]
+    paths:
+      - "src/**"
+      - "deno.jsonc"
+      - "scripts/**"
+
+env:
+  FORCE_COLOR: 1
+
+jobs:
+  # Build and test job
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Needed for semantic-release
+
+      - name: 🦕 Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v2.x
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: "**/package-lock.json"
+
+      - name: 🔍 Cache Deno dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/deno
+            ~/.deno
+          key: ${{ runner.os }}-deno-${{ hashFiles('**/deno.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-deno-
+
+      - name: 🔧 Install dependencies
+        run: deno install --allow-scripts
+
+      - name: 📋 Run tests
+        run: deno task test
+
+      - name: 📊 Generate coverage report
+        run: deno task coverage
+
+      - name: 🏗️ Build NPM package
+        run: deno task build
+
+      - name: 📚 Generate documentation
+        run: deno task doc
+
+      - name: 📦 Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-package
+          path: npm/
+          retention-days: 7
+
+      - name: 📑 Upload documentation
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation
+          path: docs/
+          retention-days: 7
+
+  # Semantic Release job (only for push to main/master)
+  release:
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      id-token: write # For JSR OIDC authentication
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history for semantic-release
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🦕 Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v2.x
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: 🔧 Install Semantic Release
+        run: |
+          npm install -g semantic-release
+          npm install -g @semantic-release/changelog
+          npm install -g @semantic-release/exec
+          npm install -g @semantic-release/git
+          npm install -g @semantic-release/github
+          npm install -g conventional-changelog-conventionalcommits
+
+      - name: 🔧 Install Deno dependencies
+        run: deno install --allow-scripts
+
+      - name: 📥 Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: npm-package
+          path: npm/
+
+      - name: 🚀 Semantic Release
+        run: npx semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: 📖 Get release info
+        id: release_info
+        run: |
+          if [ -f .semantic-release-nextrelease.json ]; then
+            VERSION=$(cat .semantic-release-nextrelease.json | jq -r '.version // empty')
+            if [ ! -z "$VERSION" ]; then
+              echo "new_version=$VERSION" >> $GITHUB_OUTPUT
+              echo "release_created=true" >> $GITHUB_OUTPUT
+            else
+              echo "release_created=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "release_created=false" >> $GITHUB_OUTPUT
+          fi
+
+  # Publish to JSR (after semantic release)
+  publish-jsr:
+    if: needs.release.outputs.release_created == 'true'
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # OIDC ID token for JSR authentication
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main # Use updated version from semantic-release
+
+      - name: 🦕 Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v2.x
+
+      - name: 🔧 Install dependencies
+        run: deno install --allow-scripts
+
+      - name: 🚀 Publish to JSR
+        run: npx jsr publish
+
+  # Publish to NPM (after semantic release)
+  publish-npm:
+    if: needs.release.outputs.release_created == 'true'
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main # Use updated version from semantic-release
+
+      - name: 🦕 Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v2.x
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: 🔧 Install dependencies
+        run: deno install --allow-scripts
+
+      - name: 🏗️ Build NPM package
+        run: deno task build
+
+      - name: 🚀 Publish to NPM
+        run: |
+          cd npm
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
