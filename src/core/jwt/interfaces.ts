@@ -31,6 +31,16 @@ export interface MerchantAuthorizationPayload {
 export type JWTAlgorithm = 'RS256' | 'RS384' | 'RS512' | 'ES256' | 'ES384' | 'ES512';
 
 /**
+ * CryptoKey-like interface for cross-platform compatibility
+ */
+interface CrossPlatformCryptoKey {
+  type: string;
+  algorithm: object;
+  extractable: boolean;
+  usages: readonly string[];
+}
+
+/**
  * JWT Key configuration
  */
 export interface JWTKeyConfig {
@@ -42,9 +52,9 @@ export interface JWTKeyConfig {
   algorithm: JWTAlgorithm;
   /** Key ID for identifying the key */
   keyId?: string;
-  /** Optional CryptoKey objects for internal use */
-  _privateCryptoKey?: CryptoKey;
-  _publicCryptoKey?: CryptoKey;
+  /** Optional CryptoKey objects for internal use (Web API compatible) */
+  _privateCryptoKey?: CrossPlatformCryptoKey;
+  _publicCryptoKey?: CrossPlatformCryptoKey;
 }
 
 /**

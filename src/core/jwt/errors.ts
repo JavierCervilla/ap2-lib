@@ -4,13 +4,23 @@
  */
 
 /**
+ * Error options interface compatible with both Web and Node.js environments
+ */
+interface JWTErrorOptions {
+  cause?: unknown;
+}
+
+/**
  * Base error class for all JWT service-related errors.
  * Allows consumers to catch any error originating from this service.
  */
 export class JWTServiceError extends Error {
-  constructor(message: string, options?: ErrorOptions) {
-    super(message, options);
+  constructor(message: string, options?: JWTErrorOptions) {
+    super(message);
     this.name = this.constructor.name; // Ensures the error name is correct
+    if (options?.cause) {
+      this.cause = options.cause;
+    }
   }
 }
 

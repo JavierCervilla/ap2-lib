@@ -16,18 +16,44 @@ async function main() {
             { name: "types", path: "./src/types/mod.ts" }
         ],
         outDir: "./npm",
-        shims: { deno: false },
+        shims: {
+            deno: false,
+            crypto: true,
+            weakRef: true
+        },
         package: {
             ...config,
             name: 'ap2-lib',
+            // Add Node.js polyfills for crypto
+            dependencies: {
+                ...config.dependencies,
+                // Add node crypto polyfill if needed
+            }
         },
         typeCheck: false,
         declaration: 'inline',
         test: false,
-        //postBuild: () => {
-        //    Deno.copyFileSync("LICENSE", "npm/LICENSE");
-        //    Deno.copyFileSync("README.md", "npm/README.md");
-        //}
+        compilerOptions: {
+            target: "ES2022",
+            lib: ["ES2022", "DOM"],
+            strict: true,
+            skipLibCheck: true
+        },
+        postBuild: () => {
+            console.log("📄 Copiando archivos adicionales...");
+            try {
+                Deno.copyFileSync("LICENSE", "npm/LICENSE");
+                console.log("✅ LICENSE copiado");
+            } catch {
+                console.log("⚠️ LICENSE no encontrado, saltando...");
+            }
+            try {
+                Deno.copyFileSync("README.md", "npm/README.md");
+                console.log("✅ README.md copiado");
+            } catch {
+                console.log("⚠️ README.md no encontrado, saltando...");
+            }
+        }
     });
 
     console.log("✅ Build completado. Ahora puedes publicar en NPM.");
