@@ -153,7 +153,7 @@ export class PaymentMandateContentsValidator extends BaseValidator<PaymentMandat
    * Check if PaymentMandateContents has expired based on timestamp
    * PaymentMandates typically don't expire, but we check if timestamp is reasonable
    */
-  async checkExpiry(contents: PaymentMandateContents, currentDate = new Date()): Promise<boolean> {
+  async checkExpiry(contents: PaymentMandateContents, currentDate: Date = new Date()): Promise<boolean> {
     if (!contents.timestamp) {
       return false; // Missing timestamp means we can't determine expiry
     }
@@ -227,7 +227,7 @@ export class PaymentMandateContentsValidator extends BaseValidator<PaymentMandat
   /**
    * Static method to check PaymentMandateContents expiry with default config
    */
-  static async checkExpiry(contents: PaymentMandateContents, currentDate = new Date()): Promise<boolean> {
+  static async checkExpiry(contents: PaymentMandateContents, currentDate: Date = new Date()): Promise<boolean> {
     return await PaymentMandateContentsValidator.withConfig(DEFAULT_VALIDATION_CONFIG).checkExpiry(contents, currentDate);
   }
 }

@@ -17,7 +17,7 @@
     "coverage:detailed": "deno coverage coverage --detailed",
     "doc": "deno doc --html --name='AP2 Library' --output=docs src/mod.ts",
     "build": "deno run -A ./scripts/build.ts",
-    "npm": "deno task build && cd npm && npm publish --access public",
+    "npm": "cd npm && npm publish --access public",
     "jsr": "deno publish --no-check --allow-slow-types",
     "publish": "deno task jsr && deno task npm"
   },

@@ -302,4 +302,4 @@ export class JTIValidator implements IJTIValidator {
 }
 
 // Export default instance
-export const defaultJTIValidator = new JTIValidator();
+export const defaultJTIValidator: JTIValidator = new JTIValidator();

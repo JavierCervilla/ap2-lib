@@ -147,8 +147,8 @@ jobs:
             echo "ℹ️ No new release created"
           fi
 
-  # Publish to JSR (after semantic release) - COMMENTED FOR TESTING
-  publish-jsr:
+  # Publish to both JSR and NPM (after semantic release)
+  publish:
     if: needs.release.outputs.release_created == 'true'
     needs: release
     runs-on: ubuntu-latest
@@ -171,24 +171,7 @@ jobs:
         run: deno install --allow-scripts
 
       - name: 🚀 Publish to JSR
-        run: npx jsr publish
-
-  # Publish to NPM (after semantic release) - COMMENTED FOR TESTING
-  publish-npm:
-    if: needs.release.outputs.release_created == 'true'
-    needs: release
-    runs-on: ubuntu-latest
-    steps:
-      - name: 📥 Checkout repository
-        uses: actions/checkout@v4
-        with:
-          ref: main # Use updated version from semantic-release
-          token: ${{ secrets.GH_TOKEN }}
-
-      - name: 🦕 Setup Deno
-        uses: denoland/setup-deno@v1
-        with:
-          deno-version: v2.x
+        run: deno task jsr
 
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
@@ -196,15 +179,13 @@ jobs:
           node-version: "20"
           registry-url: "https://registry.npmjs.org"
 
-      - name: 🔧 Install dependencies
-        run: deno install --allow-scripts
-
-      - name: 🏗️ Build NPM package
-        run: deno task build
+      - name: 📥 Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: npm-package
+          path: npm/
 
       - name: 🚀 Publish to NPM
-        run: |
-          cd npm
-          npm publish --access public
+        run: deno task npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

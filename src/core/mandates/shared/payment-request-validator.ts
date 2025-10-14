@@ -158,7 +158,7 @@ export class PaymentRequestValidator extends BaseValidator<AP2PaymentRequest> {
   /**
    * PaymentRequest doesn't have expiry, so always return false
    */
-  async checkExpiry(_paymentRequest: AP2PaymentRequest, _currentDate = new Date()): Promise<boolean> {
+  async checkExpiry(_paymentRequest: AP2PaymentRequest, _currentDate: Date = new Date()): Promise<boolean> {
     return false;
   }
 
@@ -186,7 +186,7 @@ export class PaymentRequestValidator extends BaseValidator<AP2PaymentRequest> {
   /**
    * Static method to check PaymentRequest expiry with default config
    */
-  static async checkExpiry(paymentRequest: AP2PaymentRequest, currentDate = new Date()): Promise<boolean> {
+  static async checkExpiry(paymentRequest: AP2PaymentRequest, currentDate: Date = new Date()): Promise<boolean> {
     return await PaymentRequestValidator.withConfig(DEFAULT_VALIDATION_CONFIG).checkExpiry(paymentRequest, currentDate);
   }
 }
