@@ -5,7 +5,7 @@
 [![Deno](https://img.shields.io/badge/deno-2.0+-black.svg)](https://deno.land)
 [![JSR](https://img.shields.io/badge/JSR-@xja77/ap2--lib-yellow.svg)](https://jsr.io/@xja77/ap2-lib)
 [![Test Coverage](https://img.shields.io/badge/coverage-91.0%25-brightgreen.svg)](#testing)
-[![Documentation](https://img.shields.io/badge/docs-live-blue.svg)](https://javiercervilla.github.io/ap2-lib/)
+[![Documentation](https://img.shields.io/badge/docs-live-blue.svg)](https://javiercervilla.github.io/ap2-lib/all_symbols.html)
 
 > **TypeScript/Deno implementation of the Agent Payments Protocol (AP2)** - The open, universal protocol backed by Google and 60+ organizations for autonomous commerce.
 
@@ -292,7 +292,7 @@ deno task coverage:detailed
 ## 📚 API Documentation
 
 ### 🌐 Live Documentation
-**[📖 Browse Complete API Documentation →](https://javiercervilla.github.io/ap2-lib/)**
+**[📖 Browse Complete API Documentation →](https://javiercervilla.github.io/ap2-lib/all_symbold.html)**
 
 ### Generate Documentation Locally
 
