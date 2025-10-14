@@ -148,61 +148,61 @@ jobs:
           fi
 
   # Publish to JSR (after semantic release) - COMMENTED FOR TESTING
-  # publish-jsr:
-  #   if: needs.release.outputs.release_created == 'true'
-  #   needs: release
-  #   runs-on: ubuntu-latest
-  #   permissions:
-  #     contents: read
-  #     id-token: write # OIDC ID token for JSR authentication
-  #   steps:
-  #     - name: 📥 Checkout repository
-  #       uses: actions/checkout@v4
-  #       with:
-  #         ref: main # Use updated version from semantic-release
+  publish-jsr:
+    if: needs.release.outputs.release_created == 'true'
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # OIDC ID token for JSR authentication
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main # Use updated version from semantic-release
 
-  #     - name: 🦕 Setup Deno
-  #       uses: denoland/setup-deno@v1
-  #       with:
-  #         deno-version: v2.x
+      - name: 🦕 Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v2.x
 
-  #     - name: 🔧 Install dependencies
-  #       run: deno install --allow-scripts
+      - name: 🔧 Install dependencies
+        run: deno install --allow-scripts
 
-  #     - name: 🚀 Publish to JSR
-  #       run: npx jsr publish
+      - name: 🚀 Publish to JSR
+        run: npx jsr publish
 
   # Publish to NPM (after semantic release) - COMMENTED FOR TESTING
-  # publish-npm:
-  #   if: needs.release.outputs.release_created == 'true'
-  #   needs: release
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: 📥 Checkout repository
-  #       uses: actions/checkout@v4
-  #       with:
-  #         ref: main # Use updated version from semantic-release
+  publish-npm:
+    if: needs.release.outputs.release_created == 'true'
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main # Use updated version from semantic-release
 
-  #     - name: 🦕 Setup Deno
-  #       uses: denoland/setup-deno@v1
-  #       with:
-  #         deno-version: v2.x
+      - name: 🦕 Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v2.x
 
-  #     - name: 📦 Setup Node.js
-  #       uses: actions/setup-node@v4
-  #       with:
-  #         node-version: "20"
-  #         registry-url: "https://registry.npmjs.org"
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
 
-  #     - name: 🔧 Install dependencies
-  #       run: deno install --allow-scripts
+      - name: 🔧 Install dependencies
+        run: deno install --allow-scripts
 
-  #     - name: 🏗️ Build NPM package
-  #       run: deno task build
+      - name: 🏗️ Build NPM package
+        run: deno task build
 
-  #     - name: 🚀 Publish to NPM
-  #       run: |
-  #         cd npm
-  #         npm publish --access public
-  #       env:
-  #         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: 🚀 Publish to NPM
+        run: |
+          cd npm
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
