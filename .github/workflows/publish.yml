@@ -83,6 +83,7 @@ jobs:
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     needs: build
     runs-on: ubuntu-latest
+    environment: DEPLOYMENT
     outputs:
       release_created: ${{ steps.release_info.outputs.release_created }}
       new_version: ${{ steps.release_info.outputs.new_version }}
@@ -152,6 +153,7 @@ jobs:
     if: needs.release.outputs.release_created == 'true'
     needs: release
     runs-on: ubuntu-latest
+    environment: DEPLOYMENT
     permissions:
       contents: read
       id-token: write # OIDC ID token for JSR authentication
@@ -178,6 +180,7 @@ jobs:
     if: needs.release.outputs.release_created == 'true'
     needs: release
     runs-on: ubuntu-latest
+    environment: DEPLOYMENT
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
