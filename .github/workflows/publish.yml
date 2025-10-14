@@ -196,11 +196,8 @@ jobs:
           node-version: "20"
           registry-url: "https://registry.npmjs.org"
 
-      - name: 📥 Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: npm-package
-          path: npm/
+      - name: 🏗️ Build NPM package with updated version
+        run: deno task build
 
       - name: 🚀 Publish to NPM
         run: deno task npm

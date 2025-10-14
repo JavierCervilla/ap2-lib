@@ -81,7 +81,7 @@ async function main() {
       devDependencies: Object.keys(devNpmDeps).length > 0 ? devNpmDeps : undefined,
 
       // --- Extras opcionales ---
-      keywords: ["deno", "library", "payments", "AI", "agents", "AP2"],
+      keywords: ["deno", "library", "payments", "AI", "agents", "AP2", "hacktoberfest"],
       author: "Javier Cervilla",
       repository: {
         type: "git",
