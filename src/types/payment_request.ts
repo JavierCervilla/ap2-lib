@@ -2,11 +2,17 @@
  * Payment Request Types (Corrected and Final Version)
  *
  * This file defines custom types that EXTEND the standard W3C Payment Request API types.
- * It is explicitly configured to use the "deno.window" library to access global
- * browser types like `PaymentItem`, `PaymentDetailsInit`, etc.
+ * Uses explicit imports instead of global types for better compatibility.
  */
 
 import type { ContactAddress } from "./contact_picker.ts";
+import type {
+  PaymentItem,
+  PaymentDetailsInit,
+  PaymentMethodData,
+  PaymentOptions,
+  PaymentShippingOption
+} from "./w3c_payment_types.ts";
 
 /**
  * EXTENSION: An item for purchase with an added `refund_period`.
