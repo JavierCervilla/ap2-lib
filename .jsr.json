@@ -1,0 +1,13 @@
+{
+  "name": "@xja77/ap2-lib",
+  "exclude": [
+    "src/types/deno.d.ts",
+    "__test__/**/*",
+    "docs/**/*",
+    "coverage/**/*",
+    "npm/**/*",
+    "scripts/**/*",
+    ".github/**/*",
+    ".*"
+  ]
+}
