@@ -96,7 +96,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0 # Full history for semantic-release
-          token: ${{ secrets.PAT_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🦕 Setup Deno
         uses: denoland/setup-deno@v1
@@ -160,6 +160,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: main # Use updated version from semantic-release
+          token: ${{ secrets.PAT_TOKEN }}
 
       - name: 🦕 Setup Deno
         uses: denoland/setup-deno@v1
@@ -182,6 +183,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: main # Use updated version from semantic-release
+          token: ${{ secrets.PAT_TOKEN }}
 
       - name: 🦕 Setup Deno
         uses: denoland/setup-deno@v1
