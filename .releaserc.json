@@ -1,6 +1,6 @@
 {
   "branches": ["main", "master"],
-  "repositoryUrl": "https://github.com/javiercervilla/ap2-lib",
+  "repositoryUrl": "https://github.com/JavierCervilla/ap2-lib",
   "plugins": [
     [
       "@semantic-release/commit-analyzer",
