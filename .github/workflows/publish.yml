@@ -6,6 +6,7 @@ on:
     paths:
       - "src/**"
       - "deno.jsonc"
+      - ".jsr.json"
       - "scripts/**"
       - ".github/workflows/publish.yml"
       - ".releaserc.json"
