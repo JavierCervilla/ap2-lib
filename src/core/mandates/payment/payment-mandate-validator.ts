@@ -69,7 +69,7 @@ export class PaymentMandateValidator extends BaseValidator<PaymentMandate> {
   /**
    * Check if PaymentMandate has expired (through its contents timestamp)
    */
-  async checkExpiry(paymentMandate: PaymentMandate, currentDate = new Date()): Promise<boolean> {
+  async checkExpiry(paymentMandate: PaymentMandate, currentDate: Date = new Date()): Promise<boolean> {
     return await this.contentsValidator.checkExpiry(paymentMandate.payment_mandate_contents, currentDate);
   }
 
@@ -175,7 +175,7 @@ export class PaymentMandateValidator extends BaseValidator<PaymentMandate> {
   /**
    * Static method to check PaymentMandate expiry with default config
    */
-  static async checkExpiry(paymentMandate: PaymentMandate, currentDate = new Date()): Promise<boolean> {
+  static async checkExpiry(paymentMandate: PaymentMandate, currentDate: Date = new Date()): Promise<boolean> {
     return await PaymentMandateValidator.withConfig(DEFAULT_VALIDATION_CONFIG).checkExpiry(paymentMandate, currentDate);
   }
 }

@@ -80,7 +80,7 @@ export class IntentMandateValidator extends BaseValidator<IntentMandate> {
   /**
    * Check if IntentMandate has expired
    */
-  async checkExpiry(intentMandate: IntentMandate, currentDate = new Date()): Promise<boolean> {
+  async checkExpiry(intentMandate: IntentMandate, currentDate: Date = new Date()): Promise<boolean> {
     return isExpired(intentMandate.intent_expiry, currentDate);
   }
 
@@ -108,7 +108,7 @@ export class IntentMandateValidator extends BaseValidator<IntentMandate> {
   /**
    * Static method to check IntentMandate expiry with default config
    */
-  static async checkExpiry(mandate: IntentMandate, currentDate = new Date()): Promise<boolean> {
+  static async checkExpiry(mandate: IntentMandate, currentDate: Date = new Date()): Promise<boolean> {
     return await IntentMandateValidator.withConfig(DEFAULT_VALIDATION_CONFIG).checkExpiry(mandate, currentDate);
   }
 }

@@ -195,4 +195,4 @@ export class MandateTypeDetectorRegistry {
 /**
  * Default singleton instance
  */
-export const defaultMandateTypeDetector = new MandateTypeDetectorRegistry();
+export const defaultMandateTypeDetector: MandateTypeDetectorRegistry = new MandateTypeDetectorRegistry();

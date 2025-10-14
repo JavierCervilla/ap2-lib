@@ -44,7 +44,7 @@ export function parseISO8601(dateString: string): Date {
  * @param currentDate - Current date (defaults to now)
  * @returns True if the mandate has expired
  */
-export function isExpired(expiryDateString: string, currentDate = new Date()): boolean {
+export function isExpired(expiryDateString: string, currentDate: Date = new Date()): boolean {
   const expiryDate = parseISO8601(expiryDateString);
   return currentDate > expiryDate;
 }

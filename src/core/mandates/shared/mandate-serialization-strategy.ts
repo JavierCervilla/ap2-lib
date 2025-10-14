@@ -162,4 +162,4 @@ export class MandateSerializationStrategyRegistry {
 /**
  * Default singleton instance
  */
-export const defaultMandateSerializationRegistry = new MandateSerializationStrategyRegistry();
+export const defaultMandateSerializationRegistry: MandateSerializationStrategyRegistry = new MandateSerializationStrategyRegistry();

@@ -55,7 +55,7 @@ export class CartMandateValidator extends BaseValidator<CartMandate> {
   /**
    * Check if CartMandate has expired (through its contents)
    */
-  async checkExpiry(cartMandate: CartMandate, currentDate = new Date()): Promise<boolean> {
+  async checkExpiry(cartMandate: CartMandate, currentDate: Date = new Date()): Promise<boolean> {
     return await this.cartContentsValidator.checkExpiry(cartMandate.contents, currentDate);
   }
 
@@ -83,7 +83,7 @@ export class CartMandateValidator extends BaseValidator<CartMandate> {
   /**
    * Static method to check CartMandate expiry with default config
    */
-  static async checkExpiry(cartMandate: CartMandate, currentDate = new Date()): Promise<boolean> {
+  static async checkExpiry(cartMandate: CartMandate, currentDate: Date = new Date()): Promise<boolean> {
     return await CartMandateValidator.withConfig(DEFAULT_VALIDATION_CONFIG).checkExpiry(cartMandate, currentDate);
   }
 }

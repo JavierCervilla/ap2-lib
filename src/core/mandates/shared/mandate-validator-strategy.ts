@@ -59,7 +59,7 @@ export class IntentMandateValidationStrategy extends BaseMandateValidationStrate
     return await this.validator.validateIntegrity(mandate);
   }
 
-  async checkExpiry(mandate: IntentMandate, currentDate = new Date()): Promise<boolean> {
+  async checkExpiry(mandate: IntentMandate, currentDate: Date = new Date()): Promise<boolean> {
     return await this.validator.checkExpiry(mandate, currentDate);
   }
 
@@ -87,7 +87,7 @@ export class CartMandateValidationStrategy extends BaseMandateValidationStrategy
     return await this.validator.validateIntegrity(mandate);
   }
 
-  async checkExpiry(mandate: CartMandate, currentDate = new Date()): Promise<boolean> {
+  async checkExpiry(mandate: CartMandate, currentDate: Date = new Date()): Promise<boolean> {
     return await this.validator.checkExpiry(mandate, currentDate);
   }
 
@@ -191,7 +191,7 @@ export class MandateValidationStrategyRegistry {
   /**
    * Check mandate expiry by detecting type and using appropriate strategy
    */
-  async checkMandateExpiry(mandate: Mandate, currentDate = new Date()): Promise<boolean> {
+  async checkMandateExpiry(mandate: Mandate, currentDate: Date = new Date()): Promise<boolean> {
     const mandateType = this.typeDetector.detectType(mandate);
 
     if (mandateType === MandateType.UNKNOWN) {
@@ -225,7 +225,7 @@ export class MandateValidationStrategyRegistry {
   /**
    * Static method to check mandate expiry using the default registry
    */
-  static async checkExpiry(mandate: Mandate, currentDate = new Date()): Promise<boolean> {
+  static async checkExpiry(mandate: Mandate, currentDate: Date = new Date()): Promise<boolean> {
     return await defaultMandateValidationRegistry.checkMandateExpiry(mandate, currentDate);
   }
 }
@@ -233,4 +233,4 @@ export class MandateValidationStrategyRegistry {
 /**
  * Default singleton instance
  */
-export const defaultMandateValidationRegistry = new MandateValidationStrategyRegistry();
+export const defaultMandateValidationRegistry: MandateValidationStrategyRegistry = new MandateValidationStrategyRegistry();

@@ -372,4 +372,4 @@ export class JOSEJWTService implements IJWTService {
 }
 
 // Export default instance
-export const jwtService = new JOSEJWTService();
+export const jwtService: JOSEJWTService = new JOSEJWTService();

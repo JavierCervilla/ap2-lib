@@ -280,4 +280,4 @@ export class ChecksumValidator implements IChecksumValidator {
   }
 }
 
-export const defaultChecksumValidator = new ChecksumValidator();
+export const defaultChecksumValidator: ChecksumValidator = new ChecksumValidator();

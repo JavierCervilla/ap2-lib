@@ -171,7 +171,7 @@ jobs:
         run: deno install --allow-scripts
 
       - name: 🚀 Publish to JSR
-        run: npx jsr publish
+        run: deno task jsr
 
   # Publish to NPM (after semantic release) - COMMENTED FOR TESTING
   publish-npm:
@@ -203,8 +203,6 @@ jobs:
         run: deno task build
 
       - name: 🚀 Publish to NPM
-        run: |
-          cd npm
-          npm publish --access public
+        run: deno task npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
