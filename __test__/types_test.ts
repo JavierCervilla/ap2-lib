@@ -18,7 +18,7 @@ import type {
   CartMandate,
   ContactAddress,
 } from "../src/mod.ts";
-import type { ExtendedPaymentItem, AP2PaymentRequest, AP2PaymentResponse } from "../src/types/mod.ts";
+import type { ExtendedPaymentItem, AP2PaymentRequest, AP2PaymentResponse, PaymentCurrencyAmount } from "../src/types/mod.ts";
 
 
 Deno.test("Constants - Mandate Data Keys", () => {

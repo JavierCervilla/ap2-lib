@@ -8,3 +8,4 @@ export * from "./payment-mandate.ts";
 export * from './contact_picker.ts';
 export * from './constants.ts';
 export * from './guards.ts';
+export * from './w3c_payment_types.ts';
