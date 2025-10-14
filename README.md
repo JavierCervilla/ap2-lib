@@ -24,6 +24,7 @@ The **Agent Payments Protocol (AP2)** enables AI agents to make secure, autonomo
 - 🌐 **Universal Compatibility** - Works in Deno, Node.js, and browsers
 - 📊 **Advanced Validation** - Multi-layered mandate integrity checking
 
+
 ---
 
 ## 📦 Installation
