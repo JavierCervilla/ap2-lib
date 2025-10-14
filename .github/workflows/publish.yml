@@ -15,6 +15,18 @@ on:
       - "src/**"
       - "deno.jsonc"
       - "scripts/**"
+  workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: 'Skip tests and build only'
+        required: false
+        default: false
+        type: boolean
+      force_release:
+        description: 'Force semantic release even if no changes'
+        required: false
+        default: false
+        type: boolean
 
 env:
   FORCE_COLOR: 1
@@ -53,6 +65,7 @@ jobs:
         run: deno install --allow-scripts
 
       - name: 📋 Run tests
+        if: inputs.skip_tests != true
         run: deno task test
 
       - name: 📊 Generate coverage report
