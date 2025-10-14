@@ -1,8 +1,16 @@
 {
   "name": "@xja77/ap2-lib",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "description": "AP2 Library - Agent Payments Protocol",
-  "keywords": ["deno", "library", "payments", "AI", "agents", "AP2", "hacktoberfest"],
+  "keywords": [
+    "deno",
+    "library",
+    "payments",
+    "AI",
+    "agents",
+    "AP2",
+    "hacktoberfest"
+  ],
   "license": "MIT",
   "compilerOptions": {
     "lib": [
