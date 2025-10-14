@@ -58,19 +58,6 @@ jobs:
       - name: 📚 Generate documentation
         run: deno task doc
 
-      - name: 📄 Create docs index redirect
-        run: |
-          echo '<!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="UTF-8">
-            <meta http-equiv="refresh" content="0; url=./mod.html">
-            <title>AP2 Library Documentation</title>
-          </head>
-          <body>
-            <p>Redirecting to <a href="./mod.html">AP2 Library Documentation</a>...</p>
-          </body>
-          </html>' > docs/index.html
 
       - name: 📦 Setup Pages
         uses: actions/configure-pages@v4
